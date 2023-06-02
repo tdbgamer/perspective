@@ -1,0 +1,2 @@
+build --@rules_rust//rust/toolchain/channel=nightly --enable_runfiles
+run --@rules_rust//rust/toolchain/channel=nightly --enable_runfiles

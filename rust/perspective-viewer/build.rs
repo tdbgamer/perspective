@@ -2,6 +2,7 @@
 
 use std::fs;
 use std::io::BufReader;
+use std::path::Path;
 
 use glob::glob;
 use procss::BuildCss;
@@ -38,7 +39,10 @@ fn main() -> Result<(), anyhow::Error> {
         build.add_file(src);
     }
 
-    build.compile()?.write("./target/css")?;
+    let out_dir = std::env::var_os("OUT_DIR").unwrap();
+    let out_path = Path::new(&out_dir);
+
+    build.compile()?.write(out_path.join("./css"))?;
 
     let mut build = BuildCss::new("./src/themes");
     build.add_file("variables.less");
@@ -50,7 +54,7 @@ fn main() -> Result<(), anyhow::Error> {
     build.add_file("solarized-dark.less");
     build.add_file("vaporwave.less");
     build.add_file("themes.less");
-    build.compile()?.write("./target/themes")?;
+    build.compile()?.write(out_path.join("./themes"))?;
 
     println!(
         "cargo:rustc-env=PKG_VERSION={}",

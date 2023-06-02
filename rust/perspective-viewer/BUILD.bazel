@@ -1,0 +1,51 @@
+load("@crate_index//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
+load("@rules_rust//wasm_bindgen:wasm_bindgen.bzl", "rust_wasm_bindgen")
+
+package(default_visibility = ["//visibility:public"])
+
+rust_wasm_bindgen(
+    name = "perspective-wasm",
+    target = "web",
+    wasm_file = ":perspective",
+)
+
+rust_shared_library(
+    name = "perspective",
+    srcs = glob(["src/**/*.rs"]),
+    aliases = aliases(),
+    crate_name = "perspective",
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(
+        proc_macro = True,
+    ),
+    deps = all_crate_deps(
+        normal = True,
+    ) + [
+        ":build_script",
+        "@rules_rust//wasm_bindgen/3rdparty:wasm_bindgen",
+    ],
+)
+
+cargo_build_script(
+    name = "build_script",
+    srcs = [":build.rs"],
+    data = glob(["src/**/*"]) + ["package.json"],
+    deps = all_crate_deps(
+        build = True,
+    ),
+    # Optional environment variables passed during build.rs compilation
+    # rustc_env = {
+    #    "CARGO_PKG_VERSION": "0.1.2",
+    # },
+    # Optional environment variables passed during build.rs execution.
+    # Note that as the build script's working directory is not execroot,
+    # execpath/location will return an absolute path, instead of a relative
+    # one.
+    # build_script_env = {
+    #     "SOME_TOOL_OR_FILE": "$(execpath @tool//:binary)"
+    # },
+    # Optional data/tool dependencies
+    # data = ["@tool//:binary"],
+)
