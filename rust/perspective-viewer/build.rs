@@ -1,7 +1,7 @@
 #![feature(exit_status_error)]
 
 use std::fs;
-use std::io::BufReader;
+use std::io::{BufReader, Write};
 use std::path::Path;
 
 use glob::glob;
@@ -33,6 +33,7 @@ fn glob_with_wd(indir: &str, input: &str) -> Vec<String> {
 }
 
 fn main() -> Result<(), anyhow::Error> {
+    println!("cargo:rerun-if-changed=build.rs");
     let mut build = BuildCss::new("./src/less");
     let files = glob_with_wd("./src/less", "**/*.less");
     for src in files.iter() {
@@ -41,6 +42,51 @@ fn main() -> Result<(), anyhow::Error> {
 
     let out_dir = std::env::var_os("OUT_DIR").unwrap();
     let out_path = Path::new(&out_dir);
+    // let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR").unwrap();
+    // let manifest_path = Path::new(&manifest_dir);
+
+    let mut file = fs::File::create(out_path.join("out_dir.rs"))?;
+    write!(
+        &mut file,
+        r##"
+
+pub mod out_dir {{
+
+#[macro_export]
+macro_rules! css {{
+    ($name:expr) => {{ {{
+        (
+            $name,
+            include_str!(concat!(
+                {:?},
+                "/css/",
+                $name,
+                ".css"
+            )),
+        )
+    }} }};
+    ($path:expr, $name:expr) => {{ {{
+        (
+            $name,
+            include_str!(concat!(
+                {:?},
+                "/",
+                $path,
+                "/",
+                $name,
+                ".css"
+            )),
+        )
+    }} }};
+}}
+
+pub use css;
+}}
+
+"##,
+        out_path,
+        out_path
+    )?;
 
     build.compile()?.write(out_path.join("./css"))?;
 

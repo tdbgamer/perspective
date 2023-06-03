@@ -29,30 +29,6 @@ mod style_provider;
 pub use local_style::LocalStyle;
 pub use style_provider::StyleProvider;
 
-#[macro_export]
-macro_rules! css {
-    ($name:expr) => {{
-        (
-            $name,
-            include_str!(concat!(
-                env!("OUT_DIR"),
-                "/css/",
-                $name,
-                ".css"
-            )),
-        )
-    }};
-    ($path:expr, $name:expr) => {{
-        (
-            $name,
-            include_str!(concat!(
-                env!("OUT_DIR"),
-                "/",
-                $path,
-                "/",
-                $name,
-                ".css"
-            )),
-        )
-    }};
+include! {
+  concat!(env!("OUT_DIR"), "/out_dir.rs")
 }
