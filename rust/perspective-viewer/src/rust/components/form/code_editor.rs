@@ -172,7 +172,7 @@ pub fn code_editor(props: &CodeEditorProps) -> Html {
         .collect::<Html>();
 
     html_template! {
-        <LocalStyle href={ css!("form/code-editor") } />
+        <LocalStyle href={ css_internal!("form/code-editor") } />
         <div id="editor">
             <textarea
                 id="textarea_editable"

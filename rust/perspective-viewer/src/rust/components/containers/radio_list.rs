@@ -156,7 +156,7 @@ where
         };
 
         html_template! {
-            <LocalStyle href={ css!("containers/radio-list") } />
+            <LocalStyle href={ css_internal!("containers/radio-list") } />
             {
                 ctx.props()
                 .children

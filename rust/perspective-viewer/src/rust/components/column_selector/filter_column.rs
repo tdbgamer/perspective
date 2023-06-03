@@ -468,7 +468,7 @@ impl Component for FilterColumn {
                 ondragstart={ dragstart }
                 ondragend={ dragend }>
 
-                <LocalStyle href={ css!("filter-item") } />
+                <LocalStyle href={ css_internal!("filter-item") } />
                 <div class="pivot-column-border">
                     <span class="column_name string">
                         { filter.0.to_owned() }

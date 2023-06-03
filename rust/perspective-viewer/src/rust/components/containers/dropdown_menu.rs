@@ -100,7 +100,7 @@ where
         };
 
         html_template! {
-            <LocalStyle href={ css!("containers/dropdown-menu") } />
+            <LocalStyle href={ css_internal!("containers/dropdown-menu") } />
             { body }
         }
     }

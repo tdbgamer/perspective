@@ -238,7 +238,7 @@ impl Component for DatetimeColumnStyle {
         // can't set `checked=false`.
         html! {
             <StyleProvider>
-                <LocalStyle href={ css!("column-style") } />
+                <LocalStyle href={ css_internal!("column-style") } />
                 <div id="column-style-container">
 
                     if ctx.props().enable_time_config {

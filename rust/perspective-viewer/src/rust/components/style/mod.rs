@@ -30,29 +30,34 @@ pub use local_style::LocalStyle;
 pub use style_provider::StyleProvider;
 
 #[macro_export]
-macro_rules! css {
+macro_rules! css_internal {
     ($name:expr) => {{
         (
             $name,
-            include_str!(concat!(
-                env!("OUT_DIR"),
-                "/css/",
-                $name,
-                ".css"
-            )),
+            include_str!(concat!(env!("OUT_DIR"), "/css/", $name, ".css")),
         )
     }};
     ($path:expr, $name:expr) => {{
         (
             $name,
-            include_str!(concat!(
-                env!("OUT_DIR"),
-                "/",
-                $path,
-                "/",
-                $name,
-                ".css"
-            )),
+            include_str!(concat!(env!("OUT_DIR"), "/", $path, "/", $name, ".css")),
+        )
+    }};
+}
+
+
+#[macro_export]
+macro_rules! css {
+    ($name:expr) => {{
+        (
+            $name,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/css/", $name, ".css")),
+        )
+    }};
+    ($path:expr, $name:expr) => {{
+        (
+            $name,
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $path, "/", $name, ".css")),
         )
     }};
 }
