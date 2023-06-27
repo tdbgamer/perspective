@@ -50,7 +50,7 @@ namespace binding {}
  */
 using namespace perspective::binding;
 
-PYBIND11_MODULE(libbinding, m) {
+PYBIND11_MODULE(libpsppy, m) {
     /******************************************************************************
      *
      * PerspectiveCppError
@@ -299,7 +299,6 @@ PYBIND11_MODULE(libbinding, m) {
         .def(py::init<>())
         .def("set_update_delegate", &t_pool::set_update_delegate)
         .def("unregister_gnode", &t_pool::unregister_gnode)
-        .def("set_event_loop", &t_pool::set_event_loop)
         .def("_process", &t_pool::_process);
 
     /******************************************************************************

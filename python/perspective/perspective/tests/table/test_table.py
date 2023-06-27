@@ -12,7 +12,7 @@ from datetime import date, datetime
 from perspective.core.exception import PerspectiveError
 from perspective.table import Table
 from perspective.table._state import _PerspectiveStateManager
-from perspective.table.libbinding import PerspectiveCppError, t_filter_op
+from perspective.table.libpsppy import PerspectiveCppError, t_filter_op
 from pytest import raises
 
 
@@ -573,6 +573,31 @@ class TestTable(object):
         data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         tbl = Table(data)
         assert tbl.get_limit() is None
+
+    # num_views
+
+    def test_table_get_num_views(self):
+        data = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        tbl = Table(data)
+        assert tbl.get_num_views() == 0
+        v1 = tbl.view()
+        v2 = tbl.view()
+        v3 = tbl.view()
+        assert tbl.get_num_views() == 3
+
+        v1.delete()
+        v2.delete()
+        assert tbl.get_num_views() == 1
+        failed = False
+        try:
+            tbl.delete()
+        except PerspectiveError:
+            failed = True
+        assert failed
+        v3.delete()
+        assert tbl.get_num_views() == 0
+        tbl.delete()
+
 
     # clear
 

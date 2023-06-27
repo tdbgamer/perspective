@@ -19,7 +19,7 @@ from ._utils import (
     _parse_expression_strings,
     _str_to_pythontype,
 )
-from .libbinding import (
+from .libpsppy import (
     make_table,
     str_to_filter_op,
     t_dtype,
@@ -120,6 +120,10 @@ class Table(object):
         """Returns the Table's limit, or ``None`` if an index is not
         specified by the user."""
         return self._limit
+
+    def get_num_views(self):
+        """Returns the number of views associated to this table."""
+        return len(self._views)
 
     def clear(self):
         """Removes all the rows in the :class:`~perspective.Table`, but
