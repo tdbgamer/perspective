@@ -15,7 +15,6 @@
 #include <cstdint>
 #include <limits>
 #if defined PSP_ENABLE_WASM
-#include <emscripten.h>
 #else
 #include <perspective/exception.h>
 #endif
@@ -28,13 +27,17 @@ psp_abort(const std::string& message) {
     std::string error = "Abort(): " + message;
     const char* error_cstr = error.c_str();
 
-    EM_ASM(
-        {
-            // copy string out from heap
-            // https://emscripten.org/docs/api_reference/emscripten.h.html#c.EM_ASM
-            throw new Error(UTF8ToString($0));
-        },
-        error_cstr);
+    std::cerr << error_cstr << std::endl;
+    exit(1);
+
+    // EM_ASM(
+    //     {
+    //         // copy string out from heap
+    //         //
+    //         https://emscripten.org/docs/api_reference/emscripten.h.html#c.EM_ASM
+    //         throw new Error(UTF8ToString($0));
+    //     },
+    //     error_cstr);
 #else
     throw PerspectiveException(message.c_str());
 #endif

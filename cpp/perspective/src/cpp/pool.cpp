@@ -29,11 +29,9 @@ t_updctx::t_updctx(t_uindex gnode_id, const std::string& ctx)
 
 #if defined PSP_ENABLE_WASM && !defined PSP_ENABLE_PYTHON
 
-t_val
+std::function<void(t_uindex)>
 empty_callback() {
-    t_val callback = t_val::global("Object").new_();
-    callback.set("_update_callback", t_val::global("Function").new_());
-    return callback;
+    return [](t_uindex) {};
 }
 
 t_pool::t_pool()
@@ -210,19 +208,15 @@ t_pool::register_context(t_uindex gnode_id, const std::string& name,
 
 #if defined PSP_ENABLE_WASM || defined PSP_ENABLE_PYTHON
 void
-t_pool::set_update_delegate(t_val ud) {
+t_pool::set_update_delegate(std::function<void(t_uindex)>& ud) {
     m_update_delegate = ud;
 }
 #endif
 
 void
 t_pool::notify_userspace(t_uindex port_id) {
-#if defined PSP_ENABLE_WASM && !defined PSP_ENABLE_PYTHON
-    m_update_delegate.call<void>("_update_callback", port_id);
-#elif PSP_ENABLE_PYTHON
-    if (!m_update_delegate.is_none()) {
-        m_update_delegate.attr("_update_callback")(port_id);
-    }
+#if defined PSP_ENABLE_WASM || defined PSP_ENABLE_PYTHON
+    m_update_delegate(port_id);
 #endif
 }
 

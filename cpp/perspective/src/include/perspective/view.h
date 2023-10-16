@@ -27,7 +27,6 @@
 #include <cstddef>
 #include <memory>
 #include <map>
-#include <arrow/api.h>
 #ifdef PSP_ENABLE_PYTHON
 #include <thread>
 #endif
@@ -199,35 +198,6 @@ public:
         std::int32_t end_row, std::int32_t start_col,
         std::int32_t end_col) const;
 
-    /**
-     * @brief Serializes a given data slice into the Apache Arrow format. Can
-     * be directly called with a pointer to a data slice in order to serialize
-     * it to Arrow.
-     *
-     * @param start_row
-     * @param end_row
-     * @param start_col
-     * @param end_col
-     * @return std::shared_ptr<std::string>
-     */
-    std::shared_ptr<std::string> data_slice_to_arrow(
-        std::shared_ptr<t_data_slice<CTX_T>> data_slice, bool emit_group_b,
-        bool compress) const;
-
-    /**
-     * @brief Serializes a given data slice into the Apache Arrow format. Can
-     * be directly called with a pointer to a data slice in order to serialize
-     * it to Arrow.
-     *
-     * @param start_row
-     * @param end_row
-     * @param start_col
-     * @param end_col
-     * @return std::shared_ptr<std::string>
-     */
-    std::shared_ptr<std::string> data_slice_to_csv(
-        std::shared_ptr<t_data_slice<CTX_T>> data_slice) const;
-
     // Delta calculation
     bool _get_deltas_enabled() const;
     void _set_deltas_enabled(bool enabled_state);
@@ -309,22 +279,6 @@ private:
      */
     std::string _map_aggregate_types(
         const std::string& name, const std::string& typestring) const;
-
-    /**
-     * @brief Serializes a given data slice into the Apache Arrow format. Can
-     * be directly called with a pointer to a data slice in order to serialize
-     * it to Arrow.
-     *
-     * @param start_row
-     * @param end_row
-     * @param start_col
-     * @param end_col
-     * @return std::shared_ptr<std::string>
-     */
-    std::pair<std::shared_ptr<arrow::Schema>,
-        std::shared_ptr<arrow::RecordBatch>>
-    data_slice_to_batches(bool emit_group_by,
-        std::shared_ptr<t_data_slice<CTX_T>> data_slice) const;
 
     void _find_hidden_sort(const std::vector<t_sortspec>& sort);
 

@@ -128,7 +128,6 @@ public:
 
     void pprint() const;
     void pprint(t_uindex nrows, std::ostream* os = 0) const;
-    void pprint(const std::string& fname) const;
     void pprint(const std::vector<t_uindex>& vec) const;
 
     void append(const t_data_table& other);
