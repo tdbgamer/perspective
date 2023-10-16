@@ -36,13 +36,13 @@ try {
     execSync(`cpy web/**/* ../web`, { cwd, stdio });
     execSync(`cpy node/**/* ../node`, { cwd, stdio });
 
-    const wasm = fs.readFileSync("dist/web/perspective.cpp.wasm");
-    const compressed = fflate.compressSync(wasm);
-    fs.writeFileSync("dist/web/perspective.cpp.wasm", compressed);
+    // const wasm = fs.readFileSync("dist/web/perspective.cpp.wasm");
+    // const compressed = fflate.compressSync(wasm);
+    // fs.writeFileSync("dist/web/perspective.cpp.wasm", compressed);
 
-    const wasm2 = fs.readFileSync("dist/node/perspective.cpp.wasm");
-    const compressed2 = fflate.compressSync(wasm2);
-    fs.writeFileSync("dist/node/perspective.cpp.wasm", compressed2);
+    // const wasm2 = fs.readFileSync("dist/node/perspective.cpp.wasm");
+    // const compressed2 = fflate.compressSync(wasm2);
+    // fs.writeFileSync("dist/node/perspective.cpp.wasm", compressed2);
 } catch (e) {
     console.error(e);
     process.exit(1);
