@@ -210,7 +210,7 @@ if(PSP_WASM_BUILD)
     # set(CMAKE_TOOLCHAIN_FILE "$ENV{EMSCRIPTEN_ROOT}/cmake/Modules/Platform/Emscripten.cmake")
     # set(CMAKE_AR emar)
     # set(CMAKE_RANLIB emranlib)
-    SET(UNIX 1)
+    # SET(UNIX 1)
     add_definitions(-D_WASI_EMULATED_SIGNAL)
     add_definitions(-D_WASI_EMULATED_MMAN)
     add_definitions(-D_WASI_EMULATED_PROCESS_CLOCKS)
@@ -547,7 +547,6 @@ set(PSP_WASM_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
     -s ERROR_ON_UNDEFINED_SYMBOLS=1 \
     -s NODEJS_CATCH_EXIT=0 \
     -s NODEJS_CATCH_REJECTION=0 \
-    -lwasi-emulated-mman \
 ")
 
 if(PSP_WASM_BUILD)

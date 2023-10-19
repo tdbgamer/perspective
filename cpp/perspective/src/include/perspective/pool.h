@@ -15,12 +15,12 @@
 #include <perspective/data_table.h>
 #include <perspective/gnode.h>
 #include <perspective/exports.h>
-#include <mutex>
 #include <atomic>
 
 #ifdef PSP_PARALLEL_FOR
 #include <thread>
 #include <boost/thread/shared_mutex.hpp>
+#include <mutex>
 #endif
 
 #if defined PSP_ENABLE_WASM and !defined(PSP_ENABLE_PYTHON)
