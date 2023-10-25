@@ -1,9 +1,13 @@
 fn main() {
+    cxx_psp();
+    protobuf();
+}
+fn cxx_psp() {
     println!("cargo:rustc-link-lib=static=c++abi");
 
     cxx_build::bridge("src/cpp_common.rs")
         .cpp_set_stdlib(None)
-        .opt_level(0)
+        .opt_level(3)
         .flag("-D_WASI_EMULATED_MMAN")
         .flag("-D_WASI_EMULATED_SIGNAL")
         .flag("-DPSP_ENABLE_WASM")
@@ -12,7 +16,6 @@ fn main() {
 
     cxx_build::bridge("src/ffi.rs")
         .file("cpp/ffi.cpp")
-        // .file("cpp/types.h")
         .include("cpp")
         .include("/usr/local/include")
         .include("../../cpp/perspective/src/include")
@@ -22,10 +25,7 @@ fn main() {
         .include("../../cpp/perspective/dist/release/re2-src")
         .include("../../cpp/perspective/dist/release/ordered-map-src/include")
         .cpp_set_stdlib(None)
-        .opt_level(0)
-        // .flag("-fno-exceptions")
-        // .flag("-g3")
-        // .opt_level(0)
+        .opt_level(3)
         .flag("-D_WASI_EMULATED_MMAN")
         .flag("-D_WASI_EMULATED_SIGNAL")
         .flag("-DPSP_ENABLE_WASM")
@@ -43,4 +43,8 @@ fn main() {
     println!("cargo:rustc-link-search=native=../../cpp/perspective/dist/release/re2-build");
     println!("cargo:rustc-link-lib=psp");
     println!("cargo:rustc-link-lib=re2");
+}
+
+fn protobuf() {
+    prost_build::compile_protos(&["protos/perspective.proto"], &["protos/"]).unwrap();
 }

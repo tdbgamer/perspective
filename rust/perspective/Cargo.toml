@@ -15,11 +15,21 @@ rustflags = ["-Z", "wasi-exec-model=reactor"]
 # lto = "thin"
 
 [dependencies]
+async-trait = "0.1.74"
 cxx = "1.0.109"
 link-cplusplus = { version = "1.0.9", features = ["libc++"] }
-# wasm-bindgen = "0.2.87"
+prost = "0.12.1"
+tokio = { version = "1.33.0", features = ["sync"] }
 wasm-bindgen = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }
+wasm-bindgen-futures = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }
+web-sys = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi", features = [
+  "WebSocket",
+  "MessageEvent",
+  "BinaryType",
+] }
+js-sys = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }
 
 [build-dependencies]
 cmake = "0.1.50"
 cxx-build = "1.0.109"
+prost-build = "0.12.1"

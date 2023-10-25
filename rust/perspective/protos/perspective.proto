@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package perspective.proto;
+
+message MultiplexEnvelope {
+  uint32 id = 1;
+  bytes payload = 2;
+}
+
+message TableReq {
+  oneof table_req {
+    TableSizeReq size = 1;
+  }
+}
+
+message TableResp {
+  oneof table_resp {
+    TableSizeResp size = 1;
+  }
+}
+
+message TableSizeReq {
+  uint32 id = 1;
+}
+
+message TableSizeResp {
+  uint32 id = 1;
+  uint32 size = 2;
+}
+
+
+enum DType {
+  DTYPE_UINT32 = 0;
+  DTYPE_UINT64 = 1;
+  DTYPE_INT32 = 2;
+  DTYPE_INT64 = 3;
+  DTYPE_FLOAT32 = 4;
+  DTYPE_FLOAT64 = 5;
+  DTYPE_BOOL = 6;
+  DTYPE_TIME = 7;
+  DTYPE_DATE = 8;
+  DTYPE_STR = 9;
+  DTYPE_OBJECT = 10;
+}
+
+message Schema {
+  repeated Field fields = 1;
+}
+
+message Field {
+  string name = 1;
+  DType type = 2;
+}
+
+message TableCreateReq {
+  uint32 id = 1;
+  Schema schema = 2;
+  optional uint32 reserve_rows = 3;
+}
+
+message TableCreateResp {
+  uint32 id = 1;
+}

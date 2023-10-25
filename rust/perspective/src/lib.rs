@@ -1,3 +1,4 @@
+pub mod api;
 pub mod cpp_common;
 pub mod ffi;
 pub mod js;
