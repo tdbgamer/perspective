@@ -14,16 +14,14 @@ pub fn free_pool(ptr: *mut Pool) {
 }
 
 #[wasm_bindgen]
-pub fn make_table() -> *mut Table {
-    let table = Box::new(Table::new());
-    Box::into_raw(table)
+pub fn make_table() -> Table {
+    Table::new()
 }
 
 #[wasm_bindgen]
-pub fn get_col_dtype(table: *mut Table) -> String {
+pub fn get_col_dtype(table: *mut Table, col: String) -> String {
     let table = unsafe { &*table };
-    // let col = table.get_column(&col);
-    let col = table.get_column("a");
+    let col = table.get_column(&col);
     let dtype = col.get_dtype();
     format!("{:?}", dtype)
 }

@@ -195,6 +195,7 @@ rust/perspective-viewer/target*
 rust/perspective-viewer/target.vscode
 rust/perspective-viewer/pkg
 rust/*/target*
+target/
 
 # config and deps
 .perspectiverc

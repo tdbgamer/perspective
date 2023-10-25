@@ -12,7 +12,8 @@
     "@bjorn3/browser_wasi_shim": "^0.2.15"
   },
   "scripts": {
-    "build": "esbuild --sourcemap --outdir=dist --loader:.wasm=file --bundle --format=esm index.ts && cp index.html dist/"
+    "build": "esbuild --sourcemap --outdir=dist --loader:.wasm=file --bundle --format=esm index.ts perspective_bg.js && cp index.html dist/",
+    "start": "yarn build && caddy file-server --listen :8080 --root dist"
   }
 
 }

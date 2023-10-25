@@ -1,5 +1,6 @@
 #include "ffi.h"
-#include "perspective/base.h"
+#include <perspective/base.h>
+#include <perspective/column.h>
 
 namespace ffi {
 
@@ -18,12 +19,48 @@ get_col_dtype(const Column& col) {
     return static_cast<DType>(col.get_dtype());
 }
 
+uint32_t
+get_col_nth_u32(const Column& col, perspective::t_uindex idx) {
+    return *col.get_nth<uint32_t>(idx);
+}
+
+uint64_t
+get_col_nth_u64(const Column& col, perspective::t_uindex idx) {
+    return *col.get_nth<uint64_t>(idx);
+}
+
+int32_t
+get_col_nth_i32(const Column& col, perspective::t_uindex idx) {
+    return *col.get_nth<int32_t>(idx);
+}
+
+int64_t
+get_col_nth_i64(const Column& col, perspective::t_uindex idx) {
+    return *col.get_nth<int64_t>(idx);
+}
+
+float
+get_col_nth_f32(const Column& col, perspective::t_uindex idx) {
+    return *col.get_nth<float>(idx);
+}
+
+double
+get_col_nth_f64(const Column& col, perspective::t_uindex idx) {
+    return *col.get_nth<double>(idx);
+}
+
+rust::String
+pretty_print(const perspective::Table& table, std::uint32_t num_rows) {
+    std::stringstream ss;
+    table.get_gnode()->get_table()->pprint(num_rows, &ss);
+    std::string s = ss.str();
+    return rust::String(s);
+}
+
 std::shared_ptr<Table>
 mk_table(rust::Vec<rust::String> column_names_ptr,
     rust::Vec<DType> data_types_ptr, std::uint32_t limit,
     rust::String index_ptr) {
-    // std::shared_ptr<perspective::t_gnode> gnode;
-    // gnode->init();
 
     std::vector<std::string> column_names;
     for (auto s : column_names_ptr) {
@@ -44,9 +81,25 @@ mk_table(rust::Vec<rust::String> column_names_ptr,
     perspective::t_data_table data_table(schema);
     data_table.init();
 
-    // tbl->set_gnode(gnode);
+    auto size = 3;
 
-    tbl->init(data_table, 0, perspective::t_op::OP_INSERT, 0);
+    data_table.extend(size);
+
+    auto col = data_table.get_column("a");
+    col->set_nth<int64_t>(0, 0);
+    col->set_nth<int64_t>(1, 1);
+    col->set_nth<int64_t>(2, 2);
+    col->valid_raw_fill();
+
+    data_table.clone_column("a", "psp_pkey");
+    data_table.clone_column("psp_pkey", "psp_okey");
+
+    tbl->init(data_table, size, perspective::t_op::OP_INSERT, 0);
+
+    auto gnode = tbl->get_gnode();
+    gnode->process(0);
+
+    data_table.pprint();
     return tbl;
 }
 } // namespace ffi

@@ -5,12 +5,11 @@ import {
   PreopenDirectory,
 } from "@bjorn3/browser_wasi_shim";
 // @ts-ignore
-import { __wbg_set_wasm } from "../dist/perspective_bg";
+import { __wbg_set_wasm } from "../dist/perspective_bg.js";
 // @ts-ignore
 import wasmfile from "../dist/perspective_bg.wasm";
-import { make_table, get_col_dtype } from "../dist/perspective.js";
-
-console.log('wasmfile', wasmfile);
+import { make_table } from "../dist/perspective.js";
+import * as psp from "../dist/perspective.js";
 
 let stderr = new OpenFile(new File([]));
 let stdout = new OpenFile(new File([]));
@@ -25,6 +24,9 @@ let fds = [
 let wasi = new WASI(args, env, fds, { debug: true });
 
 const windowAny = window as any;
+windowAny.psp = psp;
+// windowAny.Table = Table;
+windowAny.make_table = make_table;
 
 const module = await WebAssembly.compileStreaming(
   // fetch("out/perspective_bg.wasm")
@@ -33,36 +35,37 @@ const module = await WebAssembly.compileStreaming(
 
 windowAny.wasi = wasi;
 windowAny.module = module;
-windowAny.get_col_dtype = get_col_dtype;
+// windowAny.psp = psp;
+
+windowAny.perspective_bg = psp;
 
 let inst = await WebAssembly.instantiate(module, {
   wasi_snapshot_preview1: wasi.wasiImport,
+    // @ts-ignore
+  "./perspective_bg.js": {
+    // @ts-ignore
+    "__wbindgen_throw": function(...args) { console.log('throw', args); }
+  },
   env: {
-    // std::__2::mutex::~mutex()
-    // @ts-ignore
-    "_ZNSt3__25mutexD1Ev": function (...args) {console.log('std::__2::mutex::~mutex()', args)},
-    // @ts-ignore
-    "_ZNSt3__25mutex4lockEv": function (...args) {console.log('std::__2::mutex::lock()', args)},
-    // @ts-ignore
-    "_ZNSt3__25mutex6unlockEv": function (...args) {console.log('std::__2::mutex::unlock()', args)},
-    // @ts-ignore
-    "mmap": function (...args) {console.log('mmap()', args)},
-    // @ts-ignore
-    "mremap": function (...args) {console.log('mremap()', args)},
-    // @ts-ignore
-    "munmap": function (...args) {console.log('munmap()', args)},
-    // @ts-ignore
-    "__cxa_allocate_exception": function (...args) {console.log('EXCEPTION', args)},
-    // @ts-ignore
-    "__cxa_throw": function (...args) {console.log('THROW', args)},
+    "_ZNSt3__25mutexD1Ev": function (...args: any[]) {console.log('std::__2::mutex::~mutex()', args)},
+    "_ZNSt3__25mutex4lockEv": function (...args: any[]) {console.log('std::__2::mutex::lock()', args)},
+    "_ZNSt3__25mutex6unlockEv": function (...args: any[]) {console.log('std::__2::mutex::unlock()', args)},
+    "mmap": function (...args: any[]) {console.log('mmap()', args)},
+    "mremap": function (...args: any[]) {console.log('mremap()', args)},
+    "munmap": function (...args: any[]) {console.log('munmap()', args)},
+    "pthread_rwlock_destroy": function (...args: any[]) {console.log('pthread_rwlock_destroy()', args)},
+    "pthread_rwlock_init": function (...args: any[]) {console.log('pthread_rwlock_init()', args)},
+    "pthread_rwlock_rdlock": function (...args: any[]) {console.log('pthread_rwlock_rdlock()', args)},
+    "pthread_rwlock_unlock": function (...args: any[]) {console.log('pthread_rwlock_unlock()', args)},
+    "pthread_rwlock_wrlock": function (...args: any[]) {console.log('pthread_rwlock_wrlock()', args)},
+    "__cxa_allocate_exception": function (...args: any[]) {console.log('EXCEPTION', args)},
+    "__cxa_throw": function (...args: any[]) {console.log('THROW', args)},
   }
 });
 windowAny.inst = inst;
 windowAny.decoder = new TextDecoder("utf-8");
 
 __wbg_set_wasm(inst.exports);
-
-windowAny.make_table = make_table;
 
 // (wasi.inst as any) = inst;
 // let exitCode = wasi.start(inst as any);

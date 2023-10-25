@@ -233,8 +233,6 @@ if(PSP_WASM_BUILD)
         set(OPT_FLAGS " \
             -O0 \
             -g3 \
-            -gsource-map \
-            --profiling \
             -Wcast-align \
             -Wover-aligned \
             ")

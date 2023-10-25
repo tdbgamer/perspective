@@ -40,5 +40,7 @@ fn main() {
 
     println!("cargo:rustc-link-search=native=/Users/timothybess/src/wasi-sdk/build/wasi-sdk-20.20g2393be41c8df/share/wasi-sysroot/lib/wasm32-wasi");
     println!("cargo:rustc-link-search=native=../../cpp/perspective/dist/release");
+    println!("cargo:rustc-link-search=native=../../cpp/perspective/dist/release/re2-build");
     println!("cargo:rustc-link-lib=psp");
+    println!("cargo:rustc-link-lib=re2");
 }

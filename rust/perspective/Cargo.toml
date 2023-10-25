@@ -17,7 +17,8 @@ rustflags = ["-Z", "wasi-exec-model=reactor"]
 [dependencies]
 cxx = "1.0.109"
 link-cplusplus = { version = "1.0.9", features = ["libc++"] }
-wasm-bindgen = "0.2.87"
+# wasm-bindgen = "0.2.87"
+wasm-bindgen = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }
 
 [build-dependencies]
 cmake = "0.1.50"
