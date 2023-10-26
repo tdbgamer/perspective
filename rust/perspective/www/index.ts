@@ -7,8 +7,9 @@ import {
 // @ts-ignore
 import { __wbg_set_wasm } from "../dist/perspective_js_bg.js";
 // @ts-ignore
+import * as perspective_js_bg from "../dist/perspective_js_bg.js";
+// @ts-ignore
 import wasmfile from "../dist/perspective_js_bg.wasm";
-import { make_table } from "../dist/perspective_js.js";
 import * as psp from "../dist/perspective_js.js";
 
 let stderr = new OpenFile(new File([]));
@@ -26,7 +27,6 @@ let wasi = new WASI(args, env, fds, { debug: true });
 const windowAny = window as any;
 windowAny.psp = psp;
 // windowAny.Table = Table;
-windowAny.make_table = make_table;
 
 const module = await WebAssembly.compileStreaming(
   // fetch("out/perspective_bg.wasm")
@@ -41,9 +41,9 @@ windowAny.perspective_bg = psp;
 
 let inst = await WebAssembly.instantiate(module, {
   wasi_snapshot_preview1: wasi.wasiImport,
-  "./perspective_js_bg.js": {
-    "__wbindgen_throw": function(...args: any[]) { console.log('throw', args); }
-  },
+  // @ts-ignore
+  // "./perspective_js_bg.js": await import("./perspective_js_bg.js"),
+  "./perspective_js_bg.js": perspective_js_bg,
   env: {
     "_ZNSt3__25mutexD1Ev": function (...args: any[]) {console.log('std::__2::mutex::~mutex()', args)},
     "_ZNSt3__25mutex4lockEv": function (...args: any[]) {console.log('std::__2::mutex::lock()', args)},

@@ -10,14 +10,3 @@ path = "src/api.rs"
 
 [dependencies]
 async-trait.workspace = true
-cxx.workspace = true
-link-cplusplus.workspace = true
-prost.workspace = true
-tokio.workspace = true
-wasm-bindgen.workspace = true
-wasm-bindgen-futures.workspace = true
-web-sys.workspace = true
-js-sys.workspace = true
-
-[build-dependencies]
-prost-build.workspace = true

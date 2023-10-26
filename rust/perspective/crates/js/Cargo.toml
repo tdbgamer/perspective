@@ -8,11 +8,22 @@ edition = "2021"
 [target.wasm32-wasi]
 rustflags = ["-Z", "wasi-exec-model=reactor"]
 
+
 [lib]
 crate-type = ["cdylib"]
 path = "src/js.rs"
 
 [dependencies]
 wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+prost.workspace = true
+tokio.workspace = true
+web-sys.workspace = true
+js-sys.workspace = true
+async-trait.workspace = true
+
 perspective-ffi = { path = "../ffi" }
 perspective-api = { path = "../api" }
+
+[build-dependencies]
+prost-build.workspace = true

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/ffi", "crates/js", "crates/api"]
+members = ["crates/ffi", "crates/js", "crates/api", "crates/server"]
 default-members = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,7 +10,7 @@ default-members = []
 
 
 [profile.release]
-# lto = "thin"
+lto = "fat"
 
 [workspace.dependencies]
 async-trait = "0.1.74"
@@ -31,3 +31,13 @@ js-sys = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-a
 cmake = "0.1.50"
 cxx-build = "1.0.109"
 prost-build = "0.12.1"
+
+
+axum = { version = "0.6.20", features = ["ws", "headers"] }
+axum-extra = { version = "0.8.0", features = ["typed-routing"] }
+futures = "0.3.28"
+prost-types = "0.12.1"
+tower = "0.4.13"
+tower-http = { version = "0.4.4", features = ["trace"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
