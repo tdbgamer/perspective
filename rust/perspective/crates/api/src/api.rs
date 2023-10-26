@@ -7,15 +7,15 @@ pub mod protos {
 }
 use prost::Message;
 use protos::*;
-use tokio::sync::{futures, Mutex};
+use tokio::sync::Mutex;
 use wasm_bindgen::{prelude::*, JsValue};
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+use wasm_bindgen_futures::spawn_local;
 use web_sys::WebSocket;
 
 type Id = u32;
 
 #[async_trait(?Send)]
-trait Transport {
+pub trait Transport {
     async fn send(&self, id: Id, msg: Vec<u8>);
     async fn recv(&self, id: Id) -> Vec<u8>;
 }
@@ -23,7 +23,7 @@ trait Transport {
 #[wasm_bindgen]
 pub struct WasmWebSocketTransport {
     ws: Arc<WebSocket>,
-    cb: Closure<dyn FnMut(web_sys::MessageEvent)>,
+    _cb: Closure<dyn FnMut(web_sys::MessageEvent)>,
     recv_buffer: Arc<Mutex<HashMap<Id, Vec<u8>>>>,
 }
 
@@ -70,7 +70,7 @@ impl WasmWebSocketTransport {
         Ok(WasmWebSocketTransport {
             ws: Arc::new(ws),
             // Only GC the callback when the Transport is dropped
-            cb: onmessage_callback,
+            _cb: onmessage_callback,
             recv_buffer,
         })
     }
@@ -96,11 +96,11 @@ impl Transport for WasmWebSocketTransport {
 }
 
 #[async_trait(?Send)]
-trait PerspectiveClient {
+pub trait PerspectiveClient {
     async fn table_size(&self, id: Id) -> u32;
 }
 
-struct RemotePerspectiveClient {
+pub struct RemotePerspectiveClient {
     transport: Box<dyn Transport>,
 }
 impl RemotePerspectiveClient {
@@ -109,7 +109,7 @@ impl RemotePerspectiveClient {
     }
 }
 
-struct MemoryPerspectiveClient {
+pub struct MemoryPerspectiveClient {
     tables: HashMap<Id, Table>,
 }
 impl MemoryPerspectiveClient {
@@ -151,7 +151,7 @@ impl PerspectiveClient for RemotePerspectiveClient {
     }
 }
 
-struct Table {
+pub struct Table {
     id: Id,
     client: Arc<dyn PerspectiveClient>,
 }

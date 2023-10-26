@@ -1,0 +1,15 @@
+[package]
+name = "perspective-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/ffi.rs"
+
+[dependencies]
+cxx.workspace = true
+wasm-bindgen.workspace = true
+link-cplusplus.workspace = true
+
+[build-dependencies]
+cxx-build.workspace = true

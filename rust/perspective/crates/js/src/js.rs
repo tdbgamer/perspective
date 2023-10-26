@@ -1,5 +1,14 @@
-use crate::ffi::{Pool, Table};
+use perspective_ffi::{Pool, Table};
 use wasm_bindgen::prelude::*;
+
+// WASI reactor initialization function.
+// This is because we're not running a `main` entrypoint that
+// results in an exit code, we're initializing a library such that
+// we can consume its functions from JavaScript.
+#[no_mangle]
+extern "C" fn _initialize() {
+    println!("Hello, world!");
+}
 
 #[wasm_bindgen]
 pub fn make_pool() -> *mut Pool {

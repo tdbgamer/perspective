@@ -5,11 +5,11 @@ import {
   PreopenDirectory,
 } from "@bjorn3/browser_wasi_shim";
 // @ts-ignore
-import { __wbg_set_wasm } from "../dist/perspective_bg.js";
+import { __wbg_set_wasm } from "../dist/perspective_js_bg.js";
 // @ts-ignore
-import wasmfile from "../dist/perspective_bg.wasm";
-import { make_table } from "../dist/perspective.js";
-import * as psp from "../dist/perspective.js";
+import wasmfile from "../dist/perspective_js_bg.wasm";
+import { make_table } from "../dist/perspective_js.js";
+import * as psp from "../dist/perspective_js.js";
 
 let stderr = new OpenFile(new File([]));
 let stdout = new OpenFile(new File([]));
@@ -41,10 +41,8 @@ windowAny.perspective_bg = psp;
 
 let inst = await WebAssembly.instantiate(module, {
   wasi_snapshot_preview1: wasi.wasiImport,
-    // @ts-ignore
-  "./perspective_bg.js": {
-    // @ts-ignore
-    "__wbindgen_throw": function(...args) { console.log('throw', args); }
+  "./perspective_js_bg.js": {
+    "__wbindgen_throw": function(...args: any[]) { console.log('throw', args); }
   },
   env: {
     "_ZNSt3__25mutexD1Ev": function (...args: any[]) {console.log('std::__2::mutex::~mutex()', args)},

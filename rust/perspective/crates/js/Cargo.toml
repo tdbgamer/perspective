@@ -1,0 +1,18 @@
+[package]
+name = "perspective-js"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[target.wasm32-wasi]
+rustflags = ["-Z", "wasi-exec-model=reactor"]
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/js.rs"
+
+[dependencies]
+wasm-bindgen.workspace = true
+perspective-ffi = { path = "../ffi" }
+perspective-api = { path = "../api" }

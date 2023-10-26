@@ -7,7 +7,7 @@
 #include <perspective/data_table.h>
 #include <perspective/column.h>
 #include <memory>
-#include <perspective/src/ffi.rs.h>
+#include <perspective-ffi/src/ffi.rs.h>
 
 namespace ffi {
 std::unique_ptr<Pool> mk_pool();

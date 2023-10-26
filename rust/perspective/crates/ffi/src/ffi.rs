@@ -32,8 +32,8 @@ mod ffi_internal {
     }
 
     unsafe extern "C++" {
-        include!("perspective/cpp/ffi.h");
-        include!("perspective/cpp/types.h");
+        include!("perspective-ffi/cpp/ffi.h");
+        include!("perspective-ffi/cpp/types.h");
 
         type Pool;
         type Table;
