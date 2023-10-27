@@ -50,7 +50,7 @@ get_col_nth_f64(const Column& col, perspective::t_uindex idx) {
 }
 
 rust::String
-pretty_print(const perspective::Table& table, std::uint32_t num_rows) {
+pretty_print(const perspective::Table& table, std::size_t num_rows) {
     std::stringstream ss;
     table.get_gnode()->get_table()->pprint(num_rows, &ss);
     std::string s = ss.str();
@@ -99,7 +99,6 @@ mk_table(rust::Vec<rust::String> column_names_ptr,
     auto gnode = tbl->get_gnode();
     gnode->process(0);
 
-    data_table.pprint();
     return tbl;
 }
 } // namespace ffi

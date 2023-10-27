@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -12,7 +12,7 @@ pub trait Transport {
 
 #[async_trait(?Send)]
 pub trait PerspectiveClient {
-    async fn table_size(&self, id: Id) -> u32;
+    async fn table_size(&self, id: Id) -> usize;
     async fn make_table(self: Arc<Self>) -> Table;
 }
 
@@ -25,7 +25,7 @@ impl Table {
     pub fn new(id: Id, client: Arc<dyn PerspectiveClient>) -> Self {
         Table { id, client }
     }
-    pub async fn size(&self) -> u32 {
+    pub async fn size(&self) -> usize {
         self.client.table_size(self.id).await
     }
 }

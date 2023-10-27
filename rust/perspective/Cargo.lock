@@ -215,6 +215,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "cmake"
+version = "0.1.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31c789563b815f77f4250caee12365734369f942439b7defd71e18a48197130"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -323,6 +332,17 @@ checksum = "ac3e13f66a2f95e32a39eaa81f6b95d42878ca0e1db0c7543723dfe12557e860"
 dependencies = [
  "libc",
  "windows-sys",
+]
+
+[[package]]
+name = "extend"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "311a6d2f1f9d60bff73d2c78a0af97ed27f79672f15c238192a5bbb64db56d00"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
 ]
 
 [[package]]
@@ -802,9 +822,11 @@ dependencies = [
 name = "perspective-ffi"
 version = "0.1.0"
 dependencies = [
+ "cmake",
  "cxx",
  "cxx-build",
  "link-cplusplus",
+ "tokio",
  "wasm-bindgen",
 ]
 
@@ -813,12 +835,15 @@ name = "perspective-js"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "extend",
  "js-sys",
  "perspective-api",
  "perspective-ffi",
  "prost",
  "prost-build",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -1163,6 +1188,8 @@ dependencies = [
  "axum-extra",
  "futures",
  "perspective-api",
+ "perspective-ffi",
+ "prost",
  "prost-build",
  "prost-types",
  "tokio",

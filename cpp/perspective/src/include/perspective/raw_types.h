@@ -56,12 +56,11 @@ enum t_dtype {
 };
 
 #ifdef PSP_ENABLE_WASM
-typedef std::uint32_t t_uindex;
 typedef std::int32_t t_index;
 #else
-typedef std::uint64_t t_uindex;
 typedef std::int64_t t_index;
 #endif
+typedef std::size_t t_uindex;
 
 #ifdef WIN32
 typedef std::uint32_t t_fflag;

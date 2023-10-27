@@ -21,6 +21,9 @@ tokio.workspace = true
 web-sys.workspace = true
 js-sys.workspace = true
 async-trait.workspace = true
+tracing-subscriber.workspace = true
+tracing.workspace = true
+extend.workspace = true
 
 perspective-ffi = { path = "../ffi" }
 perspective-api = { path = "../api" }

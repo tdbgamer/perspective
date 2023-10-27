@@ -24,6 +24,13 @@ web-sys = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-
   "WebSocket",
   "MessageEvent",
   "BinaryType",
+  "PerformanceMark",
+  "Window",
+  "Document",
+  "Performance",
+  "HtmlElement",
+  "Navigator",
+  "Clipboard",
 ] }
 js-sys = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }
 
@@ -39,5 +46,8 @@ futures = "0.3.28"
 prost-types = "0.12.1"
 tower = "0.4.13"
 tower-http = { version = "0.4.4", features = ["trace"] }
-tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing = { version = "0.1.40", features = ["release_max_level_error"] }
+
+poll-promise = { version = "0.3.0", features = ["tokio"] }
+extend = "1.2.0"

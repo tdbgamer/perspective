@@ -7,25 +7,31 @@ message MultiplexEnvelope {
   bytes payload = 2;
 }
 
-message TableReq {
-  oneof table_req {
-    TableSizeReq size = 1;
+message Request {
+  oneof client_req {
+    MakeTableReq make_table_req = 1;
+    TableSizeReq table_size_req = 2;
   }
 }
 
-message TableResp {
-  oneof table_resp {
-    TableSizeResp size = 1;
+message Response {
+  oneof client_resp {
+    MakeTableResp make_table_resp = 1;
+    TableSizeResp table_size_resp = 2;
   }
+}
+
+message MakeTableReq {
+}
+message MakeTableResp {
+  uint32 id = 1;
 }
 
 message TableSizeReq {
-  uint32 id = 1;
 }
 
 message TableSizeResp {
-  uint32 id = 1;
-  uint32 size = 2;
+  uint64 size = 2;
 }
 
 
@@ -53,9 +59,8 @@ message Field {
 }
 
 message TableCreateReq {
-  uint32 id = 1;
-  Schema schema = 2;
-  optional uint32 reserve_rows = 3;
+  // Schema schema = 1;
+  optional uint32 reserve_rows = 2;
 }
 
 message TableCreateResp {

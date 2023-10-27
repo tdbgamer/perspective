@@ -557,6 +557,13 @@ t_tscalar::set(std::int8_t v) {
 }
 
 void
+t_tscalar::set(t_uindex v) {
+    m_type = DTYPE_UINT64;
+    m_data.m_uint64 = v;
+    m_status = STATUS_VALID;
+}
+
+void
 t_tscalar::set(std::uint64_t v) {
     m_type = DTYPE_UINT64;
     m_data.m_uint64 = v;

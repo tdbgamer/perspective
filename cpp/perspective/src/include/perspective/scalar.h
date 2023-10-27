@@ -10,7 +10,6 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-
 #pragma once
 #include <perspective/first.h>
 #include <perspective/base.h>
@@ -88,6 +87,7 @@ struct PERSPECTIVE_EXPORT t_tscalar {
     void set(std::int16_t v);
     void set(std::int8_t v);
 
+    void set(t_uindex v);
     void set(std::uint64_t v);
     void set(std::uint32_t v);
     void set(std::uint16_t v);

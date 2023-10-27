@@ -641,7 +641,8 @@ elseif(PSP_CPP_BUILD OR PSP_PYTHON_BUILD)
 
     # #######################
     else()
-        add_library(psp SHARED ${WASM_SOURCE_FILES})
+        add_library(psp STATIC ${WASM_SOURCE_FILES})
+        target_link_libraries(psp re2)
     endif()
 
     if(PSP_CPP_BUILD_STRICT AND NOT WIN32)

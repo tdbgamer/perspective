@@ -10,6 +10,8 @@ path = "src/ffi.rs"
 cxx.workspace = true
 wasm-bindgen.workspace = true
 link-cplusplus.workspace = true
+tokio.workspace = true
 
 [build-dependencies]
 cxx-build.workspace = true
+cmake.workspace = true
