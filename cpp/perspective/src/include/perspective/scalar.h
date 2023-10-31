@@ -87,9 +87,12 @@ struct PERSPECTIVE_EXPORT t_tscalar {
     void set(std::int16_t v);
     void set(std::int8_t v);
 
-    #ifndef WIN32
+    // Sad but necessary because of differences in the way std::size_t is
+    // defined on Windows and Linux/Mac.
+
+#ifndef WIN32
     void set(t_uindex v);
-    #endif
+#endif
 
     void set(std::uint64_t v);
     void set(std::uint32_t v);
