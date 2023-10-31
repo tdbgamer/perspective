@@ -556,12 +556,14 @@ t_tscalar::set(std::int8_t v) {
     m_status = STATUS_VALID;
 }
 
+#ifndef WIN32
 void
 t_tscalar::set(t_uindex v) {
     m_type = DTYPE_UINT64;
     m_data.m_uint64 = v;
     m_status = STATUS_VALID;
 }
+#endif
 
 void
 t_tscalar::set(std::uint64_t v) {

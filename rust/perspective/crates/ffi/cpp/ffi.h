@@ -7,10 +7,12 @@
 #include <perspective/data_table.h>
 #include <perspective/column.h>
 #include <memory>
-#include <perspective-ffi/src/ffi.rs.h>
+#include <rust/cxx.h>
 
 namespace ffi {
 std::unique_ptr<Pool> mk_pool();
+
+enum class DType : ::std::uint8_t;
 
 DType get_col_dtype(const Column& col);
 uint32_t get_col_nth_u32(const Column& col, perspective::t_uindex idx);
