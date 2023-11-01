@@ -2,27 +2,37 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-pub type Id = u32;
+pub type TableId = u32;
+pub type ViewId = u32;
 
 #[async_trait(?Send)]
 pub trait Transport {
-    async fn send(&self, id: Id, msg: Vec<u8>);
-    async fn recv(&self, id: Id) -> Vec<u8>;
+    async fn send(&self, msg: &[u8]);
+    async fn on_message(&self, cb: Box<dyn Fn(Vec<u8>)>);
 }
 
 #[async_trait(?Send)]
 pub trait PerspectiveClient {
-    async fn table_size(&self, id: Id) -> usize;
+    // async fn on_event(&self, f: Box<dyn Fn(&[u8]) + Send + 'static>);
+    // async fn send(&self, msg: &[u8]);
+
+    async fn table_size(&self, id: TableId) -> usize;
     async fn make_table(self: Arc<Self>) -> Table;
 }
 
+#[async_trait(?Send)]
+pub trait PerspectiveServer {
+    async fn table_size(&self, id: TableId) -> usize;
+    async fn make_table(&self) -> Table;
+}
+
 pub struct Table {
-    id: Id,
+    id: TableId,
     client: Arc<dyn PerspectiveClient>,
 }
 
 impl Table {
-    pub fn new(id: Id, client: Arc<dyn PerspectiveClient>) -> Self {
+    pub fn new(id: TableId, client: Arc<dyn PerspectiveClient>) -> Self {
         Table { id, client }
     }
     pub async fn size(&self) -> usize {

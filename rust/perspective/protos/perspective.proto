@@ -11,6 +11,7 @@ message Request {
   oneof client_req {
     MakeTableReq make_table_req = 1;
     TableSizeReq table_size_req = 2;
+    TableToArrow to_arrow_req = 3;
   }
 }
 
@@ -18,7 +19,14 @@ message Response {
   oneof client_resp {
     MakeTableResp make_table_resp = 1;
     TableSizeResp table_size_resp = 2;
+    ArrowStreamResp arrow_stream_resp = 3;
   }
+}
+
+message TableToArrow { }
+
+message ArrowStreamResp {
+  bytes data = 1;
 }
 
 message MakeTableReq {

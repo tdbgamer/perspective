@@ -38,43 +38,70 @@ pub enum DeferredBytes {
 }
 
 #[wasm_bindgen]
+pub struct JsTransportImpl {
+    send_fn: js_sys::Function,
+    recv_fn: js_sys::Function,
+}
+
+#[async_trait(?Send)]
+impl Transport for JsTransportImpl {
+    async fn send(&self, msg: &[u8]) {
+        let msg = js_sys::Uint8Array::from(msg);
+        self.send_fn.call1(&JsValue::UNDEFINED, &msg).unwrap();
+    }
+    async fn on_message(&self, cb: Box<dyn Fn(Vec<u8>)>) {
+        self.recv_fn
+            .call1(
+                &JsValue::UNDEFINED,
+                &Closure::wrap(Box::new(move |msg: JsValue| {
+                    let msg = js_sys::Uint8Array::new(&msg);
+                    cb(msg.to_vec());
+                }) as Box<dyn Fn(_)>)
+                .as_ref()
+                .unchecked_ref(),
+            )
+            .unwrap();
+        unimplemented!("Not implemented for JS Transport")
+    }
+}
+
+#[wasm_bindgen]
+impl JsTransportImpl {
+    #[wasm_bindgen(constructor)]
+    pub fn new(send_fn: js_sys::Function, recv_fn: js_sys::Function) -> JsTransportImpl {
+        JsTransportImpl { send_fn, recv_fn }
+    }
+}
+
+#[wasm_bindgen]
 pub struct WasmWebSocketTransport {
     ws: Arc<WebSocket>,
     _cb: Closure<dyn FnMut(web_sys::MessageEvent)>,
-    // TODO: Make fixed length buffers rather than Vecs
-    recv_buffer: Arc<RefCell<HashMap<Id, DeferredBytes>>>,
 }
 
 #[wasm_bindgen]
 impl WasmWebSocketTransport {
-    #[wasm_bindgen(constructor)]
-    pub async fn js_constructor(url: &str) -> JsTransport {
-        JsTransport(Box::new(WasmWebSocketTransport::new(url).await.unwrap()))
-    }
+    // #[wasm_bindgen(constructor)]
+    // pub async fn js_constructor(url: &str) -> JsTransport {
+    //     JsTransport(Box::new(WasmWebSocketTransport::new(url).await.unwrap()))
+    // }
 
     pub async fn new(url: &str) -> Result<WasmWebSocketTransport, JsValue> {
         let ws = WebSocket::new(url)?;
 
         ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
 
-        let recv_buffer = Arc::new(RefCell::new(HashMap::<Id, DeferredBytes>::new()));
+        let recv_buffer = Arc::new(RefCell::new(HashMap::<TableId, DeferredBytes>::new()));
         let recv_buffer_clone = recv_buffer.clone();
 
         let onmessage_callback = Closure::wrap(Box::new(move |e: web_sys::MessageEvent| {
             let recv_buffer_clone = recv_buffer_clone.clone();
             spawn_local(async move {
-                tracing::debug!("Beginning of onmessage");
-                tracing::debug!("Type of message is {:?}", e.data());
                 match e.data().dyn_into::<js_sys::ArrayBuffer>() {
                     Ok(ab) => {
-                        tracing::debug!("Top of match");
                         let bytes = js_sys::Uint8Array::new(&ab).to_vec();
-                        tracing::debug!("Got bytes: {:?}", bytes);
                         let env = MultiplexEnvelope::decode(bytes.as_slice()).unwrap();
-                        tracing::debug!("Got Envelope: {:?}", env);
                         let mut recv_buffer = (*recv_buffer_clone).borrow_mut();
-
-                        tracing::debug!("Received msg for id: {:?}", env.id);
 
                         match recv_buffer.remove(&env.id) {
                             Some(DeferredBytes::Ready(mut buf)) => {
@@ -115,22 +142,58 @@ impl WasmWebSocketTransport {
             ws: Arc::new(ws),
             // Only Drop the callback when the Transport is dropped
             _cb: onmessage_callback,
-            recv_buffer,
         })
     }
 }
 
-#[async_trait(?Send)]
-impl Transport for WasmWebSocketTransport {
-    async fn send(&self, id: Id, msg: Vec<u8>) {
-        // TODO: Don't mix up protobuf requirements in the transport maybe?
-        //       Though technically the client layer can use whatever format it wants so maybe that's fine
-        let env = MultiplexEnvelope { id, payload: msg };
-        let mut bytes = Vec::new();
-        env.encode(&mut bytes).unwrap();
-        self.ws.send_with_u8_array(&bytes).unwrap();
+#[wasm_bindgen]
+pub struct RemotePerspectiveClient {
+    transport: Box<dyn Transport>,
+    recv_buffer: Arc<RefCell<HashMap<TableId, DeferredBytes>>>,
+}
+#[wasm_bindgen]
+impl RemotePerspectiveClient {
+    #[wasm_bindgen(constructor)]
+    pub async fn js_constructor(transport: JsTransport) -> JsClient {
+        JsClient(Arc::new(Self::new(transport.0).await))
     }
-    async fn recv(&self, id: Id) -> Vec<u8> {
+    async fn new(transport: Box<dyn Transport>) -> Self {
+        let recv_buffer_clone = Arc::new(RefCell::new(HashMap::<TableId, DeferredBytes>::new()));
+        {
+            let recv_buffer_clone = recv_buffer_clone.clone();
+            transport
+                .on_message(Box::new(move |bytes: Vec<u8>| {
+                    let recv_buffer_clone = recv_buffer_clone.clone();
+                    spawn_local(async move {
+                        let env = MultiplexEnvelope::decode(bytes.as_slice()).unwrap();
+                        let mut recv_buffer = (*recv_buffer_clone).borrow_mut();
+
+                        match recv_buffer.remove(&env.id) {
+                            Some(DeferredBytes::Ready(mut buf)) => {
+                                buf.extend(&env.payload);
+                                let _ = recv_buffer.insert(env.id, DeferredBytes::Ready(buf));
+                            }
+                            Some(DeferredBytes::WaitFor(sender)) => {
+                                drop(recv_buffer);
+                                sender.send(env.payload).unwrap();
+                            }
+                            None => {
+                                recv_buffer.insert(env.id, DeferredBytes::Ready(env.payload));
+                            }
+                        };
+                    });
+                }) as Box<dyn Fn(_)>)
+                .await;
+        }
+        RemotePerspectiveClient {
+            transport,
+            recv_buffer: recv_buffer_clone,
+        }
+    }
+}
+
+impl RemotePerspectiveClient {
+    async fn recv(&self, id: TableId) -> Vec<u8> {
         let mut recv_buffer = (*self.recv_buffer).borrow_mut();
         if let Some(buf) = recv_buffer.remove(&id) {
             match buf {
@@ -146,32 +209,20 @@ impl Transport for WasmWebSocketTransport {
     }
 }
 
-#[wasm_bindgen]
-pub struct RemotePerspectiveClient {
-    transport: Box<dyn Transport>,
-}
-#[wasm_bindgen]
-impl RemotePerspectiveClient {
-    #[wasm_bindgen(constructor)]
-    pub async fn js_constructor(transport: JsTransport) -> JsClient {
-        JsClient(Arc::new(Self::new(transport.0)))
-    }
-    fn new(transport: Box<dyn Transport>) -> Self {
-        RemotePerspectiveClient { transport }
-    }
-}
-
 #[async_trait(?Send)]
 impl PerspectiveClient for RemotePerspectiveClient {
     async fn make_table(self: Arc<Self>) -> perspective_api::Table {
         let req = Request {
             client_req: Some(ClientReq::MakeTableReq(MakeTableReq {})),
         };
-        self.transport
-            .send(0, prost::Message::encode_to_vec(&req))
-            .await;
-        let resp: Response =
-            prost::Message::decode(self.transport.recv(0).await.as_slice()).unwrap();
+        let envelope = MultiplexEnvelope {
+            id: 0,
+            payload: prost::Message::encode_to_vec(&req),
+        };
+        let msg = prost::Message::encode_to_vec(&envelope);
+        self.transport.send(&msg).await;
+        let data = self.recv(0).await;
+        let resp: Response = prost::Message::decode(data.as_slice()).unwrap();
         match resp.client_resp {
             Some(response::ClientResp::MakeTableResp(MakeTableResp { id })) => {
                 perspective_api::Table::new(id, self)
@@ -180,15 +231,17 @@ impl PerspectiveClient for RemotePerspectiveClient {
         }
     }
 
-    async fn table_size(&self, id: Id) -> usize {
+    async fn table_size(&self, id: TableId) -> usize {
         let req = Request {
             client_req: Some(request::ClientReq::TableSizeReq(TableSizeReq {})),
         };
-        let bytes = prost::Message::encode_to_vec(&req);
-        self.transport.send(id, bytes).await;
-        let bytes = self.transport.recv(id).await;
-        let b = prost::bytes::Bytes::from(bytes);
-        let resp: Response = prost::Message::decode(b).unwrap();
+        let bytes = prost::Message::encode_to_vec(&MultiplexEnvelope {
+            id,
+            payload: prost::Message::encode_to_vec(&req),
+        });
+        self.transport.send(&bytes).await;
+        let bytes = self.recv(id).await;
+        let resp: Response = prost::Message::decode(bytes.as_slice()).unwrap();
         match resp.client_resp {
             Some(response::ClientResp::TableSizeResp(TableSizeResp { size, .. })) => size as usize,
             _ => panic!("Unexpected response"),
@@ -198,7 +251,7 @@ impl PerspectiveClient for RemotePerspectiveClient {
 
 #[wasm_bindgen]
 pub struct MemoryPerspectiveClient {
-    tables: Mutex<HashMap<Id, perspective_ffi::Table>>,
+    tables: Mutex<HashMap<TableId, perspective_ffi::Table>>,
 }
 
 #[wasm_bindgen]
@@ -243,7 +296,7 @@ impl JsTable {
 
 #[async_trait(?Send)]
 impl PerspectiveClient for MemoryPerspectiveClient {
-    async fn table_size(&self, id: Id) -> usize {
+    async fn table_size(&self, id: TableId) -> usize {
         self.tables.lock().await.get(&id).unwrap().size()
     }
     async fn make_table(self: Arc<Self>) -> perspective_api::Table {

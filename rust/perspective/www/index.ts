@@ -22,7 +22,7 @@ let fds = [
   stdout, // stdout
   stderr, // stderr
 ];
-let wasi = new WASI(args, env, fds, { debug: true });
+let wasi = new WASI(args, env, fds);
 
 const windowAny = window as any;
 windowAny.psp = psp;
@@ -75,4 +75,27 @@ let exitCode = wasi.initialize(inst as any);
 // console.log(`stdout: ${out}` + `\n(exit code: ${exitCode})`);
 windowAny.stderr = stderr;
 windowAny.stdout = stdout;
+
+///////////////////////////
+// API Prototyping below //
+///////////////////////////
+
+// Notes:
+// - Separate Proxy object routing from transport layer (here we use a "manager").
+//   - Allows transport to be stupid and just shuffle bytes around.
+// - _MUST_ work with tradition Python web frameworks (Tornado, Aiohttp, Starlet, FastAPI, etc.)
+
+import {ClientManager} from "@finos/perspective";
+
+const manager = new ClientManager();
+
+
+const socket = new WebSocket("myurl");
+
+socket.onmessage = (msg) => manager.send(msg);
+manager.onmessage(msg => socket.send(msg));
+
+
+
+const table = manager.table("skajldfkajdsakl");
 
