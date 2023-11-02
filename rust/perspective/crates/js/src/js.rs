@@ -1,3 +1,4 @@
+use js_sys::Promise;
 use perspective_api::*;
 use perspective_ffi::{Pool, Table};
 use wasm_bindgen::prelude::*;
@@ -6,6 +7,8 @@ use std::{
     borrow::BorrowMut,
     cell::RefCell,
     collections::HashMap,
+    future::Future,
+    pin::Pin,
     sync::{Arc, RwLock},
 };
 
@@ -15,7 +18,7 @@ use prost::Message;
 use protos::{request::ClientReq, *};
 use tokio::sync::{oneshot::Receiver, Mutex};
 use wasm_bindgen::{prelude::*, JsValue};
-use wasm_bindgen_futures::spawn_local;
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::WebSocket;
 
 mod console_tracing;
@@ -38,131 +41,65 @@ pub enum DeferredBytes {
 }
 
 #[wasm_bindgen]
-pub struct JsTransportImpl {
-    send_fn: js_sys::Function,
-    recv_fn: js_sys::Function,
-}
-
-#[async_trait(?Send)]
-impl Transport for JsTransportImpl {
-    async fn send(&self, msg: &[u8]) {
-        let msg = js_sys::Uint8Array::from(msg);
-        self.send_fn.call1(&JsValue::UNDEFINED, &msg).unwrap();
-    }
-    async fn on_message(&self, cb: Box<dyn Fn(Vec<u8>)>) {
-        self.recv_fn
-            .call1(
-                &JsValue::UNDEFINED,
-                &Closure::wrap(Box::new(move |msg: JsValue| {
-                    let msg = js_sys::Uint8Array::new(&msg);
-                    cb(msg.to_vec());
-                }) as Box<dyn Fn(_)>)
-                .as_ref()
-                .unchecked_ref(),
-            )
-            .unwrap();
-        unimplemented!("Not implemented for JS Transport")
-    }
+#[derive(Default)]
+pub struct PerspectiveTransport {
+    outgoing: RefCell<Option<Box<dyn Fn(Vec<u8>)>>>,
+    registered: RefCell<Vec<Box<dyn Fn(Vec<u8>)>>>,
 }
 
 #[wasm_bindgen]
-impl JsTransportImpl {
-    #[wasm_bindgen(constructor)]
-    pub fn new(send_fn: js_sys::Function, recv_fn: js_sys::Function) -> JsTransportImpl {
-        JsTransportImpl { send_fn, recv_fn }
+impl PerspectiveTransport {
+    #[wasm_bindgen(js_name = "make")]
+    pub fn make() -> JsTransport {
+        JsTransport(Arc::new(PerspectiveTransport::new()))
     }
 }
 
-#[wasm_bindgen]
-pub struct WasmWebSocketTransport {
-    ws: Arc<WebSocket>,
-    _cb: Closure<dyn FnMut(web_sys::MessageEvent)>,
-}
+impl PerspectiveTransport {
+    pub fn new() -> PerspectiveTransport {
+        PerspectiveTransport {
+            ..Default::default()
+        }
+    }
 
-#[wasm_bindgen]
-impl WasmWebSocketTransport {
-    // #[wasm_bindgen(constructor)]
-    // pub async fn js_constructor(url: &str) -> JsTransport {
-    //     JsTransport(Box::new(WasmWebSocketTransport::new(url).await.unwrap()))
-    // }
+    pub fn recv(&self, bytes: &[u8]) {
+        for cb in self.registered.borrow().as_slice() {
+            cb(bytes.to_vec());
+        }
+    }
 
-    pub async fn new(url: &str) -> Result<WasmWebSocketTransport, JsValue> {
-        let ws = WebSocket::new(url)?;
+    pub fn send(&self, bytes: &[u8]) {
+        if let Some(cb) = self.outgoing.borrow().as_ref() {
+            cb(bytes.to_vec());
+        }
+    }
 
-        ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
-
-        let recv_buffer = Arc::new(RefCell::new(HashMap::<TableId, DeferredBytes>::new()));
-        let recv_buffer_clone = recv_buffer.clone();
-
-        let onmessage_callback = Closure::wrap(Box::new(move |e: web_sys::MessageEvent| {
-            let recv_buffer_clone = recv_buffer_clone.clone();
-            spawn_local(async move {
-                match e.data().dyn_into::<js_sys::ArrayBuffer>() {
-                    Ok(ab) => {
-                        let bytes = js_sys::Uint8Array::new(&ab).to_vec();
-                        let env = MultiplexEnvelope::decode(bytes.as_slice()).unwrap();
-                        let mut recv_buffer = (*recv_buffer_clone).borrow_mut();
-
-                        match recv_buffer.remove(&env.id) {
-                            Some(DeferredBytes::Ready(mut buf)) => {
-                                buf.extend(&env.payload);
-                                let _ = recv_buffer.insert(env.id, DeferredBytes::Ready(buf));
-                            }
-                            Some(DeferredBytes::WaitFor(sender)) => {
-                                drop(recv_buffer);
-                                sender.send(env.payload).unwrap();
-                            }
-                            None => {
-                                recv_buffer.insert(env.id, DeferredBytes::Ready(env.payload));
-                            }
-                        };
-                    }
-                    Err(e) => {
-                        tracing::error!("Received non-arraybuffer message: {:?}", e);
-                    }
-                }
-            });
-        }) as Box<dyn FnMut(_)>);
-
-        ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
-
-        // Ensure the WebSocket opens before returning
-        let (onopen_tx, onopen_rx) = tokio::sync::oneshot::channel();
-        let onopen_callback = Closure::once(move || {
-            onopen_tx.send(()).unwrap();
-        });
-        // ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
-
-        // onopen_rx.await.unwrap();
-
-        ws.set_onopen(None);
-        drop(onopen_callback);
-
-        Ok(WasmWebSocketTransport {
-            ws: Arc::new(ws),
-            // Only Drop the callback when the Transport is dropped
-            _cb: onmessage_callback,
-        })
+    pub fn on_message(&self, cb: Box<dyn Fn(Vec<u8>)>) {
+        *self.outgoing.borrow_mut() = Some(cb);
     }
 }
+
 
 #[wasm_bindgen]
 pub struct RemotePerspectiveClient {
-    transport: Box<dyn Transport>,
+    transport: Arc<PerspectiveTransport>,
     recv_buffer: Arc<RefCell<HashMap<TableId, DeferredBytes>>>,
 }
 #[wasm_bindgen]
 impl RemotePerspectiveClient {
-    #[wasm_bindgen(constructor)]
-    pub async fn js_constructor(transport: JsTransport) -> JsClient {
-        JsClient(Arc::new(Self::new(transport.0).await))
+    #[wasm_bindgen(js_name = "make")]
+    pub async fn js_constructor(transport: &JsTransport) -> JsClient {
+        JsClient(Arc::new(Self::new(transport.0.clone()).await))
     }
-    async fn new(transport: Box<dyn Transport>) -> Self {
+
+    async fn new(transport: Arc<PerspectiveTransport>) -> RemotePerspectiveClient {
         let recv_buffer_clone = Arc::new(RefCell::new(HashMap::<TableId, DeferredBytes>::new()));
         {
             let recv_buffer_clone = recv_buffer_clone.clone();
             transport
-                .on_message(Box::new(move |bytes: Vec<u8>| {
+                .registered
+                .borrow_mut()
+                .push(Box::new(move |bytes| {
                     let recv_buffer_clone = recv_buffer_clone.clone();
                     spawn_local(async move {
                         let env = MultiplexEnvelope::decode(bytes.as_slice()).unwrap();
@@ -182,10 +119,9 @@ impl RemotePerspectiveClient {
                             }
                         };
                     });
-                }) as Box<dyn Fn(_)>)
-                .await;
+                }));
         }
-        RemotePerspectiveClient {
+        Self {
             transport,
             recv_buffer: recv_buffer_clone,
         }
@@ -220,7 +156,7 @@ impl PerspectiveClient for RemotePerspectiveClient {
             payload: prost::Message::encode_to_vec(&req),
         };
         let msg = prost::Message::encode_to_vec(&envelope);
-        self.transport.send(&msg).await;
+        self.transport.send(&msg);
         let data = self.recv(0).await;
         let resp: Response = prost::Message::decode(data.as_slice()).unwrap();
         match resp.client_resp {
@@ -239,7 +175,7 @@ impl PerspectiveClient for RemotePerspectiveClient {
             id,
             payload: prost::Message::encode_to_vec(&req),
         });
-        self.transport.send(&bytes).await;
+        self.transport.send(&bytes);
         let bytes = self.recv(id).await;
         let resp: Response = prost::Message::decode(bytes.as_slice()).unwrap();
         match resp.client_resp {
@@ -281,7 +217,34 @@ impl JsClient {
 }
 
 #[wasm_bindgen]
-pub struct JsTransport(Box<dyn Transport>);
+pub struct JsTransport(Arc<PerspectiveTransport>);
+
+#[wasm_bindgen]
+impl JsTransport {
+    #[wasm_bindgen(js_name = "onMessage")]
+    pub fn on_message_js(&mut self, cb: js_sys::Function) {
+        self.0.on_message(Box::new(move |bytes| {
+            let this = JsValue::UNDEFINED;
+            let bytes = js_sys::Uint8Array::from(bytes.as_slice());
+            let _ = cb
+                    .call1(&this, &bytes)
+                    .unwrap()
+                    // .dyn_into::<Promise>()
+                    ;
+            // Async call
+        }));
+    }
+
+    // #[wasm_bindgen]
+    // pub fn send(&self, bytes: &[u8]) {
+    //     self.0.send(bytes);
+    // }
+
+    #[wasm_bindgen]
+    pub fn recv(&self, bytes: &[u8]) {
+        self.0.recv(bytes);
+    }
+}
 
 #[wasm_bindgen]
 pub struct JsTable(perspective_api::Table);

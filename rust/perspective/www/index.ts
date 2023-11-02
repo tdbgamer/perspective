@@ -26,10 +26,8 @@ let wasi = new WASI(args, env, fds);
 
 const windowAny = window as any;
 windowAny.psp = psp;
-// windowAny.Table = Table;
 
 const module = await WebAssembly.compileStreaming(
-  // fetch("out/perspective_bg.wasm")
   fetch(wasmfile)
 );
 
@@ -76,6 +74,35 @@ let exitCode = wasi.initialize(inst as any);
 windowAny.stderr = stderr;
 windowAny.stdout = stdout;
 
+let socket = new WebSocket("ws://localhost:3000/ws");
+
+let socketOpen = new Promise((resolve, reject) => {
+  socket.onopen = resolve;
+  socket.onerror = reject;
+});
+
+await socketOpen;
+
+const transport = psp.PerspectiveTransport.make();
+windowAny.transport = transport;
+
+socket.onmessage = (msg: MessageEvent<Blob>) => {
+    msg.data
+      .arrayBuffer()
+      .then(x => new Uint8Array(x))
+      .then(x => transport.recv(x));
+};
+
+transport.onMessage((msg: Uint8Array) => {
+  socket.send(msg.buffer);
+});
+
+let client = await psp.RemotePerspectiveClient.make(transport);
+windowAny.client = client;
+
+let table = await client.makeTable();
+windowAny.table = table;
+
 ///////////////////////////
 // API Prototyping below //
 ///////////////////////////
@@ -85,17 +112,20 @@ windowAny.stdout = stdout;
 //   - Allows transport to be stupid and just shuffle bytes around.
 // - _MUST_ work with tradition Python web frameworks (Tornado, Aiohttp, Starlet, FastAPI, etc.)
 
-import {ClientManager} from "@finos/perspective";
-
-const manager = new ClientManager();
-
-
-const socket = new WebSocket("myurl");
-
-socket.onmessage = (msg) => manager.send(msg);
-manager.onmessage(msg => socket.send(msg));
+// import {Client} from "@finos/perspective";
 
 
 
-const table = manager.table("skajldfkajdsakl");
+// const socket = new WebSocket("myurl");
+
+
+// const transport = new psp.JsTransport();
+
+// socket.onmessage = (msg) => transport.send(msg.data);
+// transport.onmessage(msg => socket.send(msg));
+
+// const manager = new Client(transport);
+
+// const table = await manager.table("skajldfkajdsakl");
+// console.log(await table.size());
 

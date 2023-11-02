@@ -13,9 +13,6 @@ pub trait Transport {
 
 #[async_trait(?Send)]
 pub trait PerspectiveClient {
-    // async fn on_event(&self, f: Box<dyn Fn(&[u8]) + Send + 'static>);
-    // async fn send(&self, msg: &[u8]);
-
     async fn table_size(&self, id: TableId) -> usize;
     async fn make_table(self: Arc<Self>) -> Table;
 }
