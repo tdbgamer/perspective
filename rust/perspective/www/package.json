@@ -1,19 +1,19 @@
 {
-  "name": "www",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
-  "devDependencies": {
-    "esbuild": "^0.19.5",
-    "typescript": "^5.2.2"
-  },
-  "type": "module",
-  "dependencies": {
-    "@bjorn3/browser_wasi_shim": "^0.2.15"
-  },
-  "scripts": {
-    "build": "esbuild --sourcemap --outdir=dist --loader:.wasm=file --bundle --format=esm index.ts && cp index.html dist/",
-    "start": "yarn build && caddy file-server --listen :8080 --root dist"
-  }
-
+    "name": "www",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "MIT",
+    "devDependencies": {
+        "esbuild": "^0.19.5",
+        "typescript": "^5.2.2"
+    },
+    "type": "module",
+    "dependencies": {
+        "@bjorn3/browser_wasi_shim": "^0.2.15",
+        "prettier": "^3.0.3"
+    },
+    "scripts": {
+        "build": "esbuild --sourcemap --outdir=dist --loader:.wasm=file --bundle --format=esm index.ts worker.ts && cp index.html dist/",
+        "start": "yarn build && caddy file-server --listen :8080 --root dist"
+    }
 }
