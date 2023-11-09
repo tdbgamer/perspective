@@ -11,6 +11,8 @@ cxx.workspace = true
 wasm-bindgen.workspace = true
 link-cplusplus.workspace = true
 tokio.workspace = true
+js-sys.workspace = true
+prost-types.workspace = true
 
 [build-dependencies]
 cxx-build.workspace = true

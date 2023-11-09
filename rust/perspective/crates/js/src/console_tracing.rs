@@ -219,7 +219,7 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> Layer<S> for WasmLogger {
 /// `tracing` explicitly.
 pub fn set_global_logging() {
     use tracing_subscriber::layer::SubscriberExt;
-    let filter = tracing_subscriber::filter::filter_fn(|meta| {
+    let filter = tracing_subscriber::filter::filter_fn(|_meta| {
         // meta.module_path()
         //     .as_ref()
         //     .map(|x| x.starts_with("perspective"))

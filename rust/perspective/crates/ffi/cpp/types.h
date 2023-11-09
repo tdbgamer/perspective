@@ -1,5 +1,6 @@
 #pragma once
 
+#include "perspective/schema.h"
 #include <perspective/pool.h>
 #include <perspective/table.h>
 #include <perspective/gnode.h>
@@ -12,4 +13,5 @@ typedef perspective::Table Table;
 typedef perspective::t_gnode GNode;
 typedef perspective::t_data_table DataTable;
 typedef perspective::t_column Column;
-}
+typedef perspective::t_schema Schema;
+} // namespace ffi

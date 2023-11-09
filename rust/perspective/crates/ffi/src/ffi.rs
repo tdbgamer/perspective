@@ -1,12 +1,16 @@
+use std::borrow::BorrowMut;
 use std::sync::Arc;
 
 use cxx::let_cxx_string;
 use cxx::{SharedPtr, UniquePtr};
-use wasm_bindgen::prelude::*;
+use std::pin::Pin;
+use wasm_bindgen::{prelude::*, JsObject};
 
 #[cxx::bridge(namespace = ffi)]
 mod ffi_internal {
-    #[derive(Debug)]
+
+    #[derive(Debug, Eq, PartialEq)]
+    #[repr(u8)]
     enum DType {
         DTYPE_NONE,
         DTYPE_INT64,
@@ -42,11 +46,19 @@ mod ffi_internal {
         type GNode;
         type DataTable;
         type Column;
+        type Schema;
 
         pub fn size(self: &Table) -> usize;
         pub fn get_gnode(self: &Table) -> SharedPtr<GNode>;
+        pub fn make_table_port(table: &Table) -> usize;
+
+        pub fn get_table_schema(table: &Table) -> UniquePtr<Schema>;
+
+        pub fn get_schema_columns(schema: &Schema) -> Vec<String>;
+        pub fn get_schema_types(schema: &Schema) -> Vec<DType>;
 
         pub fn get_table_sptr(self: &GNode) -> SharedPtr<DataTable>;
+        pub fn process_gnode(gnode: &GNode, idx: usize) -> bool;
 
         pub fn get_column(self: &DataTable, name: &CxxString) -> SharedPtr<Column>;
 
@@ -67,7 +79,6 @@ mod ffi_internal {
             limit: u32,
             index: String,
         ) -> SharedPtr<Table>;
-
     }
 }
 pub use ffi_internal::mk_pool;
@@ -141,6 +152,21 @@ impl Column {
 }
 
 #[wasm_bindgen]
+pub struct Schema {
+    schema: UniquePtr<ffi_internal::Schema>,
+}
+
+impl Schema {
+    pub fn columns(&self) -> Vec<String> {
+        ffi_internal::get_schema_columns(&self.schema)
+    }
+
+    pub fn types(&self) -> Vec<DType> {
+        ffi_internal::get_schema_types(&self.schema)
+    }
+}
+
+#[wasm_bindgen]
 pub struct Table {
     table: SharedPtr<ffi_internal::Table>,
 }
@@ -149,10 +175,20 @@ pub struct Table {
 unsafe impl Send for Table {}
 unsafe impl Sync for Table {}
 
-impl Table {}
-
 #[wasm_bindgen]
 impl Table {
+    // TODO: Flesh this out more.
+    pub fn from_csv(csv: String) -> Table {
+        todo!()
+    }
+    pub fn from_arrow(bytes: Vec<u8>) -> Table {
+        todo!()
+    }
+    pub fn from_json(json: String) -> Table {
+        todo!()
+    }
+    // END TODO
+
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         let column_names = vec!["a".to_owned()];
@@ -162,9 +198,15 @@ impl Table {
         let table = ffi_internal::mk_table(column_names, data_types, limit, index);
         Table { table }
     }
+
     #[wasm_bindgen(js_name = "size")]
     pub fn size(&self) -> usize {
         self.table.size()
+    }
+
+    #[wasm_bindgen(js_name = "process")]
+    pub fn process(&self) {
+        ffi_internal::process_gnode(&self.table.get_gnode(), 0);
     }
 
     #[wasm_bindgen(js_name = "getColumnDtype")]
@@ -186,5 +228,21 @@ impl Table {
     #[wasm_bindgen(js_name = "prettyPrint")]
     pub fn pretty_print(&self, num_rows: usize) -> String {
         ffi_internal::pretty_print(&self.table, num_rows)
+    }
+
+    #[wasm_bindgen(js_name = "makePort")]
+    pub fn make_port(&self) -> usize {
+        ffi_internal::make_table_port(&self.table)
+    }
+}
+
+impl Table {
+    pub fn schema(&self) -> Schema {
+        let schema = ffi_internal::get_table_schema(&self.table);
+        Schema { schema }
+    }
+
+    pub fn columns(&self) -> Vec<String> {
+        self.schema().columns()
     }
 }

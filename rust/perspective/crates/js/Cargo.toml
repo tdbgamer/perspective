@@ -17,6 +17,7 @@ path = "src/js.rs"
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 prost.workspace = true
+prost-types.workspace = true
 tokio.workspace = true
 web-sys.workspace = true
 js-sys.workspace = true
@@ -24,6 +25,8 @@ async-trait.workspace = true
 tracing-subscriber.workspace = true
 tracing.workspace = true
 extend.workspace = true
+serde-wasm-bindgen.workspace = true
+serde.workspace = true
 
 perspective-ffi = { path = "../ffi" }
 perspective-api = { path = "../api" }

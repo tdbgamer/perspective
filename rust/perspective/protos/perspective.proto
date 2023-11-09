@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/struct.proto";
+
 package perspective.proto;
 
 message MultiplexEnvelope {
@@ -12,6 +14,8 @@ message Request {
     MakeTableReq make_table_req = 1;
     TableSizeReq table_size_req = 2;
     TableToArrow to_arrow_req = 3;
+    TableSchemaReq table_schema_req = 4;
+    TableMakePortReq table_make_port_req = 5;
   }
 }
 
@@ -20,7 +24,23 @@ message Response {
     MakeTableResp make_table_resp = 1;
     TableSizeResp table_size_resp = 2;
     ArrowStreamResp arrow_stream_resp = 3;
+    TableSchemaResp table_schema_resp = 4;
+    TableMakePortResp table_make_port_resp = 5;
   }
+}
+
+message TableMakePortReq {
+}
+
+message TableMakePortResp {
+  uint64 port_id = 1;
+}
+
+message TableSchemaReq {
+}
+
+message TableSchemaResp {
+  map<string, uint32> schema = 1;
 }
 
 message TableToArrow { }
@@ -42,28 +62,13 @@ message TableSizeResp {
   uint64 size = 2;
 }
 
-
-enum DType {
-  DTYPE_UINT32 = 0;
-  DTYPE_UINT64 = 1;
-  DTYPE_INT32 = 2;
-  DTYPE_INT64 = 3;
-  DTYPE_FLOAT32 = 4;
-  DTYPE_FLOAT64 = 5;
-  DTYPE_BOOL = 6;
-  DTYPE_TIME = 7;
-  DTYPE_DATE = 8;
-  DTYPE_STR = 9;
-  DTYPE_OBJECT = 10;
-}
-
 message Schema {
   repeated Field fields = 1;
 }
 
 message Field {
   string name = 1;
-  DType type = 2;
+  uint32 dtype = 2;
 }
 
 message TableCreateReq {

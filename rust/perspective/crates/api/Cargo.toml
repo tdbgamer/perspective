@@ -10,3 +10,5 @@ path = "src/api.rs"
 
 [dependencies]
 async-trait.workspace = true
+serde.workspace = true
+itertools.workspace = true

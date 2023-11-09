@@ -816,6 +816,8 @@ name = "perspective-api"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "itertools",
+ "serde",
 ]
 
 [[package]]
@@ -825,7 +827,9 @@ dependencies = [
  "cmake",
  "cxx",
  "cxx-build",
+ "js-sys",
  "link-cplusplus",
+ "prost-types",
  "tokio",
  "wasm-bindgen",
 ]
@@ -841,6 +845,9 @@ dependencies = [
  "perspective-ffi",
  "prost",
  "prost-build",
+ "prost-types",
+ "serde",
+ "serde-wasm-bindgen",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1116,18 +1123,29 @@ checksum = "a3cf7c11c38cb994f3d40e8a8cde3bbd1f72a435e4c49e85d6553d8312306152"
 
 [[package]]
 name = "serde"
-version = "1.0.189"
+version = "1.0.192"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e422a44e74ad4001bdc8eede9a4570ab52f71190e9c076d14369f38b9200537"
+checksum = "bca2a08484b285dcb282d0f67b26cadc0df8b19f8c12502c13d966bf9482f001"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
-name = "serde_derive"
-version = "1.0.189"
+name = "serde-wasm-bindgen"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e48d1f918009ce3145511378cf68d613e3b3d9137d67272562080d68a2b32d5"
+checksum = "17ba92964781421b6cef36bf0d7da26d201e96d84e1b10e7ae6ed416e516906d"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.192"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6c7207fbec9faa48073f3e3074cbe553af6ea512d7c21ba46e434e70ea9fbc1"
 dependencies = [
  "proc-macro2",
  "quote",

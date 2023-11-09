@@ -39,7 +39,6 @@ cmake = "0.1.50"
 cxx-build = "1.0.109"
 prost-build = "0.12.1"
 
-
 axum = { version = "0.6.20", features = ["ws", "headers"] }
 axum-extra = { version = "0.8.0", features = ["typed-routing"] }
 futures = "0.3.28"
@@ -48,8 +47,29 @@ tower = "0.4.13"
 tower-http = { version = "0.4.4", features = ["trace"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 tracing = { version = "0.1.40", features = ["release_max_level_error"] }
+num_enum = "0.7.1"
+itertools = "0.11.0"
 
 poll-promise = { version = "0.3.0", features = ["tokio"] }
 extend = "1.2.0"
 
 vcpkg = "0.2.15"
+serde-wasm-bindgen = "0.6"
+serde = { version = "1.0.192", features = ["derive"] }
+
+[patch.crates-io]
+wasm-bindgen = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }
+wasm-bindgen-futures = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }
+web-sys = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi", features = [
+  "WebSocket",
+  "MessageEvent",
+  "BinaryType",
+  "PerformanceMark",
+  "Window",
+  "Document",
+  "Performance",
+  "HtmlElement",
+  "Navigator",
+  "Clipboard",
+] }
+js-sys = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }

@@ -1,4 +1,6 @@
 #include "ffi.h"
+#include "types.h"
+#include <memory>
 #include <perspective/base.h>
 #include <perspective/column.h>
 
@@ -49,12 +51,45 @@ get_col_nth_f64(const Column& col, perspective::t_uindex idx) {
     return *col.get_nth<double>(idx);
 }
 
+perspective::t_uindex
+make_table_port(const Table& table) {
+    return const_cast<Table&>(table).make_port();
+}
+
 rust::String
 pretty_print(const perspective::Table& table, std::size_t num_rows) {
     std::stringstream ss;
     table.get_gnode()->get_table()->pprint(num_rows, &ss);
     std::string s = ss.str();
     return rust::String(s);
+}
+
+bool
+process_gnode(const GNode& gnode, perspective::t_uindex idx) {
+    return const_cast<GNode&>(gnode).process(idx);
+}
+
+rust::Vec<rust::String>
+get_schema_columns(const Schema& schema) {
+    rust::Vec<rust::String> columns;
+    for (auto& s : schema.columns()) {
+        columns.push_back(rust::String(s));
+    }
+    return columns;
+}
+
+rust::Vec<DType>
+get_schema_types(const Schema& schema) {
+    rust::Vec<DType> types;
+    for (auto& s : schema.types()) {
+        types.push_back(static_cast<DType>(s));
+    }
+    return types;
+}
+
+std::unique_ptr<Schema>
+get_table_schema(const Table& table) {
+    return std::make_unique<Schema>(table.get_schema());
 }
 
 std::shared_ptr<Table>

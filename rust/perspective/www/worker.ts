@@ -29,7 +29,7 @@ let selfAny = self as any;
 selfAny.stderr = stderr;
 selfAny.stdout = stdout;
 
-let res = (async () => {
+let initWasm = (async () => {
     const module = await WebAssembly.compileStreaming(fetch(wasmfile));
 
     let inst = await WebAssembly.instantiate(module, {
@@ -39,13 +39,13 @@ let res = (async () => {
         "./perspective_js_bg.js": perspective_js_bg,
         env: {
             _ZNSt3__25mutexD1Ev: function (...args: any[]) {
-                console.log("std::__2::mutex::~mutex()", args);
+                // console.log("std::__2::mutex::~mutex()", args);
             },
             _ZNSt3__25mutex4lockEv: function (...args: any[]) {
-                console.log("std::__2::mutex::lock()", args);
+                // console.log("std::__2::mutex::lock()", args);
             },
             _ZNSt3__25mutex6unlockEv: function (...args: any[]) {
-                console.log("std::__2::mutex::unlock()", args);
+                // console.log("std::__2::mutex::unlock()", args);
             },
             mmap: function (...args: any[]) {
                 console.log("mmap()", args);
@@ -83,30 +83,34 @@ let res = (async () => {
     __wbg_set_wasm(inst.exports);
 
     wasi.initialize(inst as any);
-
-    let memclient = psp.MemoryPerspectiveClient.make();
-    return memclient;
 })();
 
+let memclient: psp.JsClient | undefined;
 let transport: psp.JsTransport | undefined;
+let task: number | undefined;
 
 self.onmessage = async (msg: MessageEvent<Req>) => {
     try {
-        let memclient = await res;
+        await initWasm;
         switch (msg.data.type) {
             case "init":
                 console.log("Initializing", msg);
                 transport = psp.PerspectiveTransport.make();
-                memclient.registerServer(transport);
-                transport.onServerTx((data: Uint8Array) => {
+                memclient =
+                    psp.MemoryPerspectiveClient.makeWithTransport(transport);
+                transport.onTx((data: Uint8Array) => {
                     console.log("Server sending", data);
                     self.postMessage(data.buffer);
                 });
+                // TODO: This is wrong
+                task = setInterval(() => {
+                    memclient?.process();
+                }, 1000);
                 break;
             case "data":
                 console.log("Server received", msg.data.data);
                 if (transport) {
-                    transport.serverRx(new Uint8Array(msg.data.data));
+                    transport.rx(new Uint8Array(msg.data.data));
                 }
                 break;
         }

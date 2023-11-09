@@ -42,13 +42,13 @@ let inst = await WebAssembly.instantiate(module, {
     "./perspective_js_bg.js": perspective_js_bg,
     env: {
         _ZNSt3__25mutexD1Ev: function (...args: any[]) {
-            console.log("std::__2::mutex::~mutex()", args);
+            // console.log("std::__2::mutex::~mutex()", args);
         },
         _ZNSt3__25mutex4lockEv: function (...args: any[]) {
-            console.log("std::__2::mutex::lock()", args);
+            // console.log("std::__2::mutex::lock()", args);
         },
         _ZNSt3__25mutex6unlockEv: function (...args: any[]) {
-            console.log("std::__2::mutex::unlock()", args);
+            // console.log("std::__2::mutex::unlock()", args);
         },
         mmap: function (...args: any[]) {
             console.log("mmap()", args);
@@ -125,13 +125,13 @@ windowAny.client = client;
 
 let worker = new Worker("./worker.js");
 worker.postMessage({ type: "init", transport });
-transport.onClientTx((msg: Uint8Array) => {
+transport.onTx((msg: Uint8Array) => {
     console.log("Client sending", msg);
     worker.postMessage({ type: "data", data: msg.buffer }, [msg.buffer]);
 });
 worker.onmessage = (msg: MessageEvent) => {
     console.log("Client received", msg);
-    transport.clientRx(new Uint8Array(msg.data));
+    transport.rx(new Uint8Array(msg.data));
 };
 windowAny.worker = worker;
 

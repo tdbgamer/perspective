@@ -1,5 +1,6 @@
 #pragma once
 
+#include "perspective/raw_types.h"
 #include "types.h"
 #include <perspective/pool.h>
 #include <perspective/table.h>
@@ -21,6 +22,15 @@ int32_t get_col_nth_i32(const Column& col, perspective::t_uindex idx);
 int64_t get_col_nth_i64(const Column& col, perspective::t_uindex idx);
 float get_col_nth_f32(const Column& col, perspective::t_uindex idx);
 double get_col_nth_f64(const Column& col, perspective::t_uindex idx);
+
+perspective::t_uindex make_table_port(const Table& table);
+
+bool process_gnode(const GNode& col, perspective::t_uindex idx);
+
+rust::Vec<rust::String> get_schema_columns(const Schema& schema);
+rust::Vec<DType> get_schema_types(const Schema& schema);
+
+std::unique_ptr<Schema> get_table_schema(const Table& table);
 
 rust::String pretty_print(
     const perspective::Table& table, std::size_t num_rows);
