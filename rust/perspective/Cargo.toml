@@ -56,6 +56,11 @@ extend = "1.2.0"
 vcpkg = "0.2.15"
 serde-wasm-bindgen = "0.6"
 serde = { version = "1.0.192", features = ["derive"] }
+arrow-ipc = { version = "48.0.0", features = ["lz4"] }
+arrow-schema = "48.0.0"
+arrow-array = "48.0.0"
+thiserror = "1.0.50"
+chrono = { version = "0.4.31", default_features = false }
 
 [patch.crates-io]
 wasm-bindgen = { git = "https://github.com/Rob2309/wasm-bindgen.git", branch = "wasi-abi" }

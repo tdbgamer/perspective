@@ -1,15 +1,9 @@
-use js_sys::Array;
-use perspective_api::*;
+use perspective_api::{PerspectiveClient, TableId, Transport};
 use perspective_ffi::DType;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
-use std::{
-    cell::RefCell,
-    collections::{BTreeMap, HashMap},
-    env,
-    sync::Arc,
-};
+use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 
@@ -504,4 +498,9 @@ impl PerspectiveClient for MemoryPerspectiveClient {
             t.process();
         });
     }
+}
+
+#[wasm_bindgen]
+pub fn read_arrow(bytes: &[u8]) -> Result<perspective_ffi::Table, JsValue> {
+    perspective_ffi::read_arrow(bytes).map_err(|e| e.to_string().into())
 }

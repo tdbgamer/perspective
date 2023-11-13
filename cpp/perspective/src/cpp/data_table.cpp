@@ -309,6 +309,13 @@ t_data_table::get_schema() const {
     return m_schema;
 }
 
+std::unique_ptr<t_schema>
+t_data_table::get_schema_uptr() const {
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    return std::make_unique<t_schema>(m_schema);
+}
+
 std::shared_ptr<t_data_table>
 t_data_table::flatten() const {
     PSP_TRACE_SENTINEL();

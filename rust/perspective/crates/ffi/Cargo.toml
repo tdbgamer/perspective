@@ -13,6 +13,12 @@ link-cplusplus.workspace = true
 tokio.workspace = true
 js-sys.workspace = true
 prost-types.workspace = true
+arrow-ipc.workspace = true
+arrow-schema.workspace = true
+arrow-array.workspace = true
+chrono.workspace = true
+
+perspective-api = { path = "../api" }
 
 [build-dependencies]
 cxx-build.workspace = true

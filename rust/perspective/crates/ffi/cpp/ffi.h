@@ -23,6 +23,34 @@ int64_t get_col_nth_i64(const Column& col, perspective::t_uindex idx);
 float get_col_nth_f32(const Column& col, perspective::t_uindex idx);
 double get_col_nth_f64(const Column& col, perspective::t_uindex idx);
 
+void fill_column_u32(std::shared_ptr<Column> col, const std::uint32_t* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_u64(std::shared_ptr<Column> col, const std::uint64_t* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_i32(std::shared_ptr<Column> col, const std::int32_t* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_i64(std::shared_ptr<Column> col, const std::int64_t* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_f32(std::shared_ptr<Column> col, const float* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_f64(std::shared_ptr<Column> col, const double* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_time(std::shared_ptr<Column> col, const std::int64_t* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
+void fill_column_dict(std::shared_ptr<Column> col, const char* dict,
+    rust::Slice<const std::int32_t> offsets, const std::int32_t* ptr,
+    perspective::t_uindex start, perspective::t_uindex len);
+
 perspective::t_uindex make_table_port(const Table& table);
 
 bool process_gnode(const GNode& col, perspective::t_uindex idx);
@@ -38,5 +66,17 @@ rust::String pretty_print(
 std::shared_ptr<Table> mk_table(rust::Vec<rust::String> column_names_ptr,
     rust::Vec<DType> data_types_ptr, std::uint32_t limit,
     rust::String index_ptr);
+
+std::shared_ptr<Table> mk_table_from_data_table(
+    std::unique_ptr<DataTable> data_table, const std::string& index);
+
+std::unique_ptr<Schema> mk_schema(
+    rust::Vec<rust::String> column_names_ptr, rust::Vec<DType> data_types_ptr);
+
+std::unique_ptr<DataTable> mk_data_table(
+    const Schema& schema, perspective::t_uindex capacity);
+
+std::unique_ptr<DataTable> table_extend(
+    std::unique_ptr<DataTable> table, perspective::t_uindex num_rows);
 
 } // namespace ffi

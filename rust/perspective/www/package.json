@@ -4,12 +4,15 @@
     "main": "index.js",
     "license": "MIT",
     "devDependencies": {
+        "@types/node": "^20.9.0",
         "esbuild": "^0.19.5",
+        "ts-node": "^10.9.1",
         "typescript": "^5.2.2"
     },
     "type": "module",
     "dependencies": {
         "@bjorn3/browser_wasi_shim": "^0.2.15",
+        "@finos/perspective": "^2.6.1",
         "prettier": "^3.0.3"
     },
     "scripts": {

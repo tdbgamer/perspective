@@ -81,6 +81,7 @@ public:
     t_uindex num_rows() const;
 
     const t_schema& get_schema() const;
+    std::unique_ptr<t_schema> get_schema_uptr() const;
 
     t_uindex size() const;
     t_uindex get_capacity() const;

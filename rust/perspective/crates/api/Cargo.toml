@@ -12,3 +12,4 @@ path = "src/api.rs"
 async-trait.workspace = true
 serde.workspace = true
 itertools.workspace = true
+thiserror.workspace = true

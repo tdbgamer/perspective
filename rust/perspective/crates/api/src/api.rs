@@ -1,7 +1,14 @@
-use std::{collections::HashMap, hash::Hash, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Unsupported Arrow Type: {0}")]
+    UnsupportedArrowSchema(String),
+}
+
+pub type Result<A> = std::result::Result<A, Error>;
 
 // pub mod view_config;
 
