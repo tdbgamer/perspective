@@ -82,12 +82,32 @@ __wbg_set_wasm(inst.exports);
 // let exitCode = wasi.start(inst as any);
 wasi.initialize(inst as any);
 
-const arrow = fs.readFileSync(path.join(__dirname, "dist/superstore.arrow"));
+// const arrow = fs.readFileSync(path.join(__dirname, "dist/superstore.arrow"));
+const arrow = fs.readFileSync(path.join(__dirname, "dist/untitled.arrow"));
+// const arrow = fs.readFileSync(path.join(__dirname, "test.arrow"));
 
-console.time("init");
+for (let i = 0; i < 100; i++) {
+    const table = psp.read_arrow(arrow);
+    table.free();
+}
+
+console.time("read_arrow_stream");
 const table = psp.read_arrow(arrow);
-console.timeEnd("init");
+console.timeEnd("read_arrow_stream");
 
 console.log("table_size", table.size());
+console.log(table.prettyPrint(3));
+try {
+    console.log(arrow);
+    console.log(psp.write_arrow(table).buffer);
+    console.log(arrow == psp.write_arrow(table).buffer);
+    fs.writeFileSync("test.arrow", psp.write_arrow(table), "binary");
+
+    psp.read_arrow(psp.write_arrow(table)).free();
+} catch (e) {
+    console.log(e);
+    console.log("stderr", new TextDecoder("utf8").decode(stderr.file.data));
+    throw e;
+}
 
 table.free();

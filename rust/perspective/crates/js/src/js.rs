@@ -501,6 +501,11 @@ impl PerspectiveClient for MemoryPerspectiveClient {
 }
 
 #[wasm_bindgen]
+pub fn write_arrow(table: &perspective_ffi::Table) -> Result<Vec<u8>, JsValue> {
+    perspective_ffi::write_arrow(table).map_err(|e| e.to_string().into())
+}
+
+#[wasm_bindgen]
 pub fn read_arrow(bytes: &[u8]) -> Result<perspective_ffi::Table, JsValue> {
     perspective_ffi::read_arrow(bytes).map_err(|e| e.to_string().into())
 }

@@ -135,7 +135,8 @@ worker.onmessage = (msg: MessageEvent) => {
 };
 windowAny.worker = worker;
 
-windowAny.superstore = fetch("superstore.arrow")
+// windowAny.superstore = fetch("superstore.arrow")
+windowAny.superstore = fetch("untitled.arrow")
     .then((x) => x.arrayBuffer())
     .then((x) => new Uint8Array(x));
 

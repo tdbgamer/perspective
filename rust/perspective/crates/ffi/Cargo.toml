@@ -16,6 +16,7 @@ prost-types.workspace = true
 arrow-ipc.workspace = true
 arrow-schema.workspace = true
 arrow-array.workspace = true
+arrow-buffer.workspace = true
 chrono.workspace = true
 
 perspective-api = { path = "../api" }

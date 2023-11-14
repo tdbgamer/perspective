@@ -23,6 +23,11 @@ get_col_dtype(const Column& col) {
     return static_cast<DType>(col.get_dtype());
 }
 
+perspective::t_uindex
+get_dtype_size(DType dtype) {
+    return perspective::get_dtype_size(convert_to_dtype(dtype));
+}
+
 uint32_t
 get_col_nth_u32(const Column& col, perspective::t_uindex idx) {
     return *col.get_nth<uint32_t>(idx);
@@ -51,6 +56,23 @@ get_col_nth_f32(const Column& col, perspective::t_uindex idx) {
 double
 get_col_nth_f64(const Column& col, perspective::t_uindex idx) {
     return *col.get_nth<double>(idx);
+}
+
+char*
+get_col_raw_data(const Column& col) {
+    return const_cast<char*>(col.get_nth<char>(0));
+}
+
+void
+fill_column_memcpy(std::shared_ptr<Column> col, const char* ptr,
+    perspective::t_uindex start, perspective::t_uindex len, std::size_t size) {
+    std::memcpy(col->get_nth<char>(start), ptr, len * size);
+    col->get_nth_status(0);
+    perspective::t_status* status
+        = const_cast<perspective::t_status*>(col->get_nth_status(0));
+    // TODO: Definitely wrong, need to memcpy the statuses from null buffer
+    //       instead.
+    std::memset(status, perspective::t_status::STATUS_VALID, len);
 }
 
 void
@@ -278,6 +300,7 @@ std::unique_ptr<DataTable>
 mk_data_table(const Schema& schema, perspective::t_uindex capacity) {
     auto data_table = std::make_unique<DataTable>(schema, capacity);
     data_table->init();
+    data_table->extend(capacity);
     return data_table;
 }
 

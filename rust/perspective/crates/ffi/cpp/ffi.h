@@ -16,12 +16,18 @@ std::unique_ptr<Pool> mk_pool();
 enum class DType : ::std::uint8_t;
 
 DType get_col_dtype(const Column& col);
+perspective::t_uindex get_dtype_size(DType dtype);
 uint32_t get_col_nth_u32(const Column& col, perspective::t_uindex idx);
 uint64_t get_col_nth_u64(const Column& col, perspective::t_uindex idx);
 int32_t get_col_nth_i32(const Column& col, perspective::t_uindex idx);
 int64_t get_col_nth_i64(const Column& col, perspective::t_uindex idx);
 float get_col_nth_f32(const Column& col, perspective::t_uindex idx);
 double get_col_nth_f64(const Column& col, perspective::t_uindex idx);
+
+char* get_col_raw_data(const Column& col);
+
+void fill_column_memcpy(std::shared_ptr<Column> col, const char* ptr,
+    perspective::t_uindex start, perspective::t_uindex len, std::size_t size);
 
 void fill_column_u32(std::shared_ptr<Column> col, const std::uint32_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len);

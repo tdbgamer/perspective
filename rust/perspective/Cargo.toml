@@ -59,6 +59,7 @@ serde = { version = "1.0.192", features = ["derive"] }
 arrow-ipc = { version = "48.0.0", features = ["lz4"] }
 arrow-schema = "48.0.0"
 arrow-array = "48.0.0"
+arrow-buffer = "48.0.0"
 thiserror = "1.0.50"
 chrono = { version = "0.4.31", default_features = false }
 

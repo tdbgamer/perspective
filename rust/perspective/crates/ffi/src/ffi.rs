@@ -73,6 +73,18 @@ mod ffi_internal {
         pub fn get_col_nth_i32(col: &Column, idx: usize) -> i32;
         pub fn get_col_nth_i64(col: &Column, idx: usize) -> i64;
 
+        pub fn get_dtype_size(dtype: DType) -> usize;
+
+        pub unsafe fn get_col_raw_data(col: &Column) -> *mut c_char;
+
+        pub unsafe fn fill_column_memcpy(
+            col: SharedPtr<Column>,
+            ptr: *const c_char,
+            start: usize,
+            len: usize,
+            size: usize,
+        );
+
         pub unsafe fn fill_column_u32(
             col: SharedPtr<Column>,
             ptr: *const u32,
@@ -215,12 +227,26 @@ impl Column {
         ffi_internal::get_col_dtype(&self.column)
     }
 
+    pub fn get_dtype_size(&self) -> usize {
+        ffi_internal::get_dtype_size(self.get_dtype())
+    }
+
     pub fn get_u32(&self, idx: usize) -> u32 {
         ffi_internal::get_col_nth_u32(&self.column, idx)
     }
 
     pub fn get_u64(&self, idx: usize) -> u64 {
         ffi_internal::get_col_nth_u64(&self.column, idx)
+    }
+
+    pub(crate) unsafe fn get_raw_data(&self) -> *mut std::ffi::c_char {
+        ffi_internal::get_col_raw_data(&self.column)
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        let ptr = unsafe { self.get_raw_data() };
+        let len = self.size() * self.get_dtype_size();
+        unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }
     }
 }
 
@@ -276,6 +302,60 @@ impl Schema {
 
     pub fn types(&self) -> Vec<DType> {
         ffi_internal::get_schema_types(&self.schema)
+    }
+}
+
+impl TryFrom<Schema> for arrow_schema::Schema {
+    type Error = perspective_api::Error;
+
+    fn try_from(value: Schema) -> Result<Self, Self::Error> {
+        let columns = value.columns();
+        let types = value.types();
+        let mut fields = Vec::new();
+        for (name, dtype) in columns.iter().zip(types.iter()) {
+            let field = match *dtype {
+                DType::DTYPE_INT32 => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::Int32, true)
+                }
+                DType::DTYPE_INT64 => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::Int64, true)
+                }
+                DType::DTYPE_UINT32 => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::UInt32, true)
+                }
+                DType::DTYPE_UINT64 => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::UInt64, true)
+                }
+                DType::DTYPE_FLOAT32 => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::Float32, true)
+                }
+                DType::DTYPE_FLOAT64 => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::Float64, true)
+                }
+                DType::DTYPE_DATE => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::Date32, true)
+                }
+                DType::DTYPE_TIME => {
+                    arrow_schema::Field::new(name, arrow_schema::DataType::Date64, true)
+                }
+                DType::DTYPE_STR => arrow_schema::Field::new(
+                    name,
+                    arrow_schema::DataType::Dictionary(
+                        Box::new(arrow_schema::DataType::Int32),
+                        Box::new(arrow_schema::DataType::Utf8),
+                    ),
+                    true,
+                ),
+                _ => {
+                    return Err(perspective_api::Error::UnsupportedArrowSchema(format!(
+                        "{:?}",
+                        dtype
+                    )))
+                }
+            };
+            fields.push(field);
+        }
+        Ok(arrow_schema::Schema::new(fields))
     }
 }
 
@@ -399,6 +479,63 @@ impl Table {
     }
 }
 
+pub fn write_arrow(table: &Table) -> perspective_api::Result<Vec<u8>> {
+    let arrow_schema = Arc::new(arrow_schema::Schema::try_from(table.schema())?);
+    let mut builder = arrow_ipc::writer::StreamWriter::try_new(Vec::new(), &arrow_schema).unwrap();
+    let schema = table.schema();
+    let cols = schema
+        .columns()
+        .into_iter()
+        .zip(schema.types().into_iter())
+        .collect::<Vec<_>>();
+    let mut array_refs: Vec<(String, arrow_array::ArrayRef, bool)> = Vec::new();
+    for (col_name, col_dtype) in cols {
+        let col = table.get_column(&col_name);
+        let buffer = arrow_buffer::Buffer::from_slice_ref(col.as_slice());
+        match col_dtype {
+            DType::DTYPE_INT32 => {
+                let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);
+                let array = arrow_array::Int32Array::new(scalar_buffer, None);
+                // let array = arrow_array::Int32Array::(buffer);
+                array_refs.push((col_name, Arc::new(array), true));
+            }
+            DType::DTYPE_INT64 => {
+                let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);
+                let array = arrow_array::Int64Array::new(scalar_buffer, None);
+                array_refs.push((col_name, Arc::new(array), true));
+            }
+            DType::DTYPE_UINT32 => {
+                let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);
+                let array = arrow_array::UInt32Array::new(scalar_buffer, None);
+                array_refs.push((col_name, Arc::new(array), true));
+            }
+            DType::DTYPE_UINT64 => {
+                let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);
+                let array = arrow_array::UInt64Array::new(scalar_buffer, None);
+                array_refs.push((col_name, Arc::new(array), true));
+            }
+            DType::DTYPE_FLOAT32 => {
+                let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);
+                let array = arrow_array::Float32Array::new(scalar_buffer, None);
+                array_refs.push((col_name, Arc::new(array), true));
+            }
+            DType::DTYPE_FLOAT64 => {
+                let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);
+                let array = arrow_array::Float64Array::new(scalar_buffer, None);
+                array_refs.push((col_name, Arc::new(array), true));
+            }
+            _ => todo!(),
+        }
+    }
+    // let b = arrow_array::RecordBatch::try_new(arrow_schema.clone(), array_refs).unwrap();
+
+    let batch = arrow_array::RecordBatch::try_from_iter_with_nullable(array_refs).unwrap();
+    builder.write(&batch).unwrap();
+    builder.finish().unwrap();
+    Ok(builder.into_inner().unwrap())
+    // arrow_array::Int32Array::new(values, nulls)
+}
+
 pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
     let cursor = std::io::Cursor::new(bytes);
     let reader = arrow_ipc::reader::StreamReader::try_new(cursor, None).unwrap();
@@ -441,7 +578,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .unwrap();
                     let ptr = int32_data.values().as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_i32(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_i32(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<i32>(),
+                        )
                     };
                 }
                 DataType::Int64 => {
@@ -451,7 +595,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .unwrap();
                     let ptr = int64_data.values().as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_i64(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_i64(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<i64>(),
+                        )
                     };
                 }
                 DataType::UInt8 => return mk_err(),
@@ -463,7 +614,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .unwrap();
                     let ptr = uint32_data.values().as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_u32(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_u32(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<u32>(),
+                        )
                     };
                 }
                 DataType::UInt64 => {
@@ -473,7 +631,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .unwrap();
                     let ptr = uint64_data.values().as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_u64(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_u64(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<u64>(),
+                        )
                     };
                 }
                 DataType::Float16 => return mk_err(),
@@ -484,7 +649,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .unwrap();
                     let ptr = float32_data.values().as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_f32(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_f32(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<f32>(),
+                        )
                     };
                 }
                 DataType::Float64 => {
@@ -494,7 +666,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .unwrap();
                     let ptr = float64_data.values().as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_f64(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_f64(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<f64>(),
+                        )
                     };
                 }
                 DataType::Timestamp(_, _) => todo!(),
@@ -545,7 +724,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                     };
                     let ptr = time32_data.as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_i32(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_i32(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<i32>(),
+                        )
                     };
                 }
                 DataType::Time64(units) => {
@@ -565,7 +751,14 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                     };
                     let ptr = time64_data.as_ptr();
                     unsafe {
-                        ffi_internal::fill_column_i64(pcol.column.clone(), ptr, start_at, col.len())
+                        // ffi_internal::fill_column_i64(pcol.column.clone(), ptr, start_at, col.len())
+                        ffi_internal::fill_column_memcpy(
+                            pcol.column.clone(),
+                            ptr as *const std::ffi::c_char,
+                            start_at,
+                            col.len(),
+                            std::mem::size_of::<i64>(),
+                        )
                     };
                 }
                 DataType::Duration(_) => return mk_err(),
@@ -623,4 +816,113 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
     Ok(Table {
         table: ffi_internal::mk_table_from_data_table(data_table.data_table, &index),
     })
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashSet;
+
+    use super::*;
+    use arrow_array::{Array, ArrayRef, RecordBatch};
+
+    #[test]
+    pub fn test_discover_arrow_behavior() {
+        // Ensuring my assumptions about arrow's behavior are correct.
+        let i32a = arrow_array::Int32Array::from(vec![Some(1), Some(2), Some(3), Some(4), None]);
+        assert_eq!(i32a.len(), 5);
+        assert_eq!(i32a.null_count(), 1);
+
+        // wtf!
+        assert_eq!(i32a.nulls().unwrap().len(), 5);
+        // len on nulls is the same as len on the array, but null_count is correct...
+        assert_eq!(i32a.nulls().unwrap().null_count(), 1);
+
+        // Includes nulls *sigh*
+        assert_eq!(i32a.values().len(), 5);
+
+        // Obviously should be unchanged
+        assert_eq!(i32a.values().slice(0, 4), &[1, 2, 3, 4]);
+        // Ok looks like it just leaves the value uninitialized (I assume they didn't zero it)
+        assert_eq!(i32a.value(4), 0);
+
+        // This may not be so bad then. I can memset the column with the values and then
+        // memset the statuses using the null buffer.
+    }
+
+    #[test]
+    pub fn test_read_write_arrow() {
+        let arrow = arrow_array::RecordBatch::try_from_iter(vec![
+            (
+                "a",
+                Arc::new(arrow_array::Int32Array::from(vec![
+                    Some(1),
+                    Some(2),
+                    Some(3),
+                    Some(4),
+                    // None,
+                ])) as ArrayRef,
+            ),
+            (
+                "b",
+                Arc::new(arrow_array::Int32Array::from(vec![
+                    Some(1),
+                    Some(2),
+                    Some(3),
+                    Some(4),
+                    // None,
+                ])) as ArrayRef,
+            ),
+        ])
+        .unwrap();
+        let mut writer =
+            arrow_ipc::writer::StreamWriter::try_new(Vec::new(), &arrow.schema()).unwrap();
+        writer.write(&arrow).unwrap();
+        writer.finish().unwrap();
+        let raw_arroy_bytes = writer.into_inner().unwrap();
+        let table = read_arrow(raw_arroy_bytes.as_slice()).unwrap();
+        let psp_arrow_bytes = write_arrow(&table).unwrap();
+        let _ = read_arrow(psp_arrow_bytes.as_slice()).unwrap();
+        assert_arrow_arrays_same(raw_arroy_bytes.as_slice(), psp_arrow_bytes.as_slice());
+    }
+
+    pub fn assert_arrow_arrays_same(lhs: &[u8], rhs: &[u8]) {
+        let lhs = arrow_ipc::reader::StreamReader::try_new(std::io::Cursor::new(lhs), None)
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap();
+        let rhs = arrow_ipc::reader::StreamReader::try_new(std::io::Cursor::new(rhs), None)
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap();
+        // Ignore missing fields for now
+        let fields_lhs = lhs
+            .schema()
+            .all_fields()
+            .iter()
+            .map(|x| x.name())
+            .cloned()
+            .collect::<HashSet<_>>();
+        let fields_rhs = rhs
+            .schema()
+            .all_fields()
+            .iter()
+            .map(|x| x.name())
+            .cloned()
+            .collect::<HashSet<_>>();
+        let fields = fields_lhs.intersection(&fields_rhs).collect::<Vec<_>>();
+
+        for field in fields {
+            let (col_l, col_r) = (
+                lhs.column_by_name(field).unwrap(),
+                rhs.column_by_name(field).unwrap(),
+            );
+            assert_eq!(col_l.data_type(), col_r.data_type());
+            assert_eq!(col_l.len(), col_r.len());
+            assert_eq!(col_l.null_count(), col_r.null_count());
+            assert_eq!(col_l.nulls(), col_r.nulls());
+            assert_eq!(col_l.to_data(), col_r.to_data());
+        }
+    }
 }
