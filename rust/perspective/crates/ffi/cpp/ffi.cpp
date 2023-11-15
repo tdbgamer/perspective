@@ -5,7 +5,6 @@
 #include <perspective/base.h>
 #include <perspective/column.h>
 #include <chrono>
-#include <sys/_types/_u_char.h>
 
 namespace ffi {
 
@@ -72,11 +71,11 @@ get_col_raw_status(const Column& col) {
     return reinterpret_cast<Status*>(statuses);
 }
 
-static const u_char NULLMASK[]
+static const unsigned char NULLMASK[]
     = {1, 1 << 1, 1 << 2, 1 << 3, 1 << 4, 1 << 5, 1 << 6, 1 << 7};
 
 static inline bool
-is_not_null(const u_char* nullmask, perspective::t_uindex idx) {
+is_not_null(const unsigned char* nullmask, perspective::t_uindex idx) {
     // Example: if usize is 32-bit
     // 0xFFFFFFFF - idx value
     // 0xFFFFFFF1 - Shift off the lower 3 bits.
@@ -90,7 +89,7 @@ is_not_null(const u_char* nullmask, perspective::t_uindex idx) {
 
 void
 fill_column_memcpy(std::shared_ptr<Column> col, const char* ptr,
-    const u_char* nullmask, perspective::t_uindex start,
+    const unsigned char* nullmask, perspective::t_uindex start,
     perspective::t_uindex len, std::size_t size) {
     std::memcpy(col->get_nth<char>(start), ptr, len * size);
 
@@ -114,57 +113,16 @@ fill_column_memcpy(std::shared_ptr<Column> col, const char* ptr,
 }
 
 void
-fill_column_u32(std::shared_ptr<Column> col, const std::uint32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
-    for (perspective::t_uindex i = 0; i < len; ++i) {
-        col->set_nth<std::uint32_t>(start + i, ptr[i]);
-    }
-};
-
-void
-fill_column_u64(std::shared_ptr<Column> col, const std::uint64_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
-    for (perspective::t_uindex i = 0; i < len; ++i) {
-        col->set_nth<std::uint64_t>(start + i, ptr[i]);
-    }
-};
-
-void
-fill_column_i32(std::shared_ptr<Column> col, const std::int32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
-    for (perspective::t_uindex i = 0; i < len; ++i) {
-        col->set_nth<std::int32_t>(start + i, ptr[i]);
-    }
-};
-
-void
-fill_column_i64(std::shared_ptr<Column> col, const std::int64_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
-    for (perspective::t_uindex i = 0; i < len; ++i) {
-        col->set_nth<std::int64_t>(start + i, ptr[i]);
-    }
-}
-
-void
-fill_column_f32(std::shared_ptr<Column> col, const float* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
-    for (perspective::t_uindex i = 0; i < len; ++i) {
-        col->set_nth<float>(start + i, ptr[i]);
-    }
-}
-
-void
-fill_column_f64(std::shared_ptr<Column> col, const double* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
-    for (perspective::t_uindex i = 0; i < len; ++i) {
-        col->set_nth<double>(start + i, ptr[i]);
-    }
-}
-
-void
 fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
+    const unsigned char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len) {
+    auto has_nulls = nullmask != nullptr;
     for (perspective::t_uindex i = 0; i < len; ++i) {
+        if (has_nulls && !is_not_null(nullmask, i)) {
+            // If set_nth is never called on that cell, the value will be
+            // "invalid" or "null".
+            continue;
+        }
         // Calculate year month and day from
         std::chrono::time_point<std::chrono::system_clock> tp
             = std::chrono::system_clock::from_time_t(
@@ -178,8 +136,15 @@ fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
 
 void
 fill_column_time(std::shared_ptr<Column> col, const std::int64_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
+    const unsigned char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len) {
+    auto has_nulls = nullmask != nullptr;
     for (perspective::t_uindex i = 0; i < len; ++i) {
+        if (has_nulls && !is_not_null(nullmask, i)) {
+            // If set_nth is never called on that cell, the value will be
+            // "invalid" or "null".
+            continue;
+        }
         perspective::t_time time(ptr[i]);
         col->set_nth<perspective::t_time>(start + i, time);
     }
@@ -188,7 +153,8 @@ fill_column_time(std::shared_ptr<Column> col, const std::int64_t* ptr,
 void
 fill_column_dict(std::shared_ptr<Column> col, const char* dict,
     rust::Slice<const std::int32_t> offsets, const std::int32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len) {
+    const unsigned char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len) {
     perspective::t_vocab* vocab = col->_get_vocab();
     std::string s;
     for (std::size_t i = 0; i < offsets.size() - 1; ++i) {
@@ -196,9 +162,8 @@ fill_column_dict(std::shared_ptr<Column> col, const char* dict,
         s.assign(dict + offsets[i], es);
         vocab->get_interned(s);
     }
-    for (std::size_t i = 0; i < len; ++i) {
-        col->set_nth<std::int32_t>(start + i, ptr[i]);
-    }
+    fill_column_memcpy(col, reinterpret_cast<const char*>(ptr), nullmask, start,
+        len, sizeof(std::int32_t));
 }
 
 perspective::t_uindex

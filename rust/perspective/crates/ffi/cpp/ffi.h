@@ -30,18 +30,21 @@ Status* get_col_raw_status(const Column& col);
 char* get_col_raw_data(const Column& col);
 
 void fill_column_memcpy(std::shared_ptr<Column> col, const char* ptr,
-    const u_char* nullmask, perspective::t_uindex start,
+    const unsigned char* nullmask, perspective::t_uindex start,
     perspective::t_uindex len, std::size_t size);
 
 void fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
+    const unsigned char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len);
 
 void fill_column_time(std::shared_ptr<Column> col, const std::int64_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
+    const unsigned char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len);
 
 void fill_column_dict(std::shared_ptr<Column> col, const char* dict,
     rust::Slice<const std::int32_t> offsets, const std::int32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
+    const unsigned char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len);
 
 perspective::t_uindex make_table_port(const Table& table);
 

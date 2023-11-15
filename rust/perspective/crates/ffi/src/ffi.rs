@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -7,8 +6,9 @@ use arrow_buffer::NullBuffer;
 use arrow_schema::{DataType, TimeUnit};
 use cxx::let_cxx_string;
 use cxx::{SharedPtr, UniquePtr};
-use std::pin::Pin;
-use wasm_bindgen::{prelude::*, JsObject};
+use wasm_bindgen::prelude::*;
+
+// TODO Remove all the wasm_bindgen annotations, this is just for convenience ATM.
 
 #[cxx::bridge(namespace = ffi)]
 mod ffi_internal {
@@ -99,6 +99,7 @@ mod ffi_internal {
         pub unsafe fn fill_column_date(
             col: SharedPtr<Column>,
             ptr: *const i32,
+            nullmask: *const u8,
             start: usize,
             len: usize,
         );
@@ -106,6 +107,7 @@ mod ffi_internal {
         pub unsafe fn fill_column_time(
             col: SharedPtr<Column>,
             ptr: *const i64,
+            nullmask: *const u8,
             start: usize,
             len: usize,
         );
@@ -115,6 +117,7 @@ mod ffi_internal {
             dict: *const c_char,
             offsets: &[i32],
             ptr: *const i32,
+            nullmask: *const u8,
             start: usize,
             len: usize,
         );
@@ -274,13 +277,32 @@ impl Schema {
             schema: ffi_internal::mk_schema(keys, values),
         }
     }
-
     pub fn columns(&self) -> Vec<String> {
         ffi_internal::get_schema_columns(&self.schema)
     }
-
     pub fn types(&self) -> Vec<DType> {
         ffi_internal::get_schema_types(&self.schema)
+    }
+}
+
+#[wasm_bindgen]
+impl Schema {
+    #[wasm_bindgen(js_name = "columns")]
+    pub fn columns_js(&self) -> js_sys::Array {
+        let arr = js_sys::Array::new();
+        for col in self.columns() {
+            arr.push(&JsValue::from_str(&col));
+        }
+        arr
+    }
+
+    #[wasm_bindgen(js_name = "types")]
+    pub fn types_js(&self) -> js_sys::Array {
+        let arr = js_sys::Array::new();
+        for dtype in self.types() {
+            arr.push(&JsValue::from_str(&format!("{:?}", dtype)));
+        }
+        arr
     }
 }
 
@@ -445,14 +467,15 @@ impl Table {
     pub fn make_port(&self) -> usize {
         ffi_internal::make_table_port(&self.table)
     }
-}
 
-impl Table {
+    #[wasm_bindgen(js_name = "schema")]
     pub fn schema(&self) -> Schema {
         let schema = ffi_internal::get_table_schema(&self.table);
         Schema { schema }
     }
+}
 
+impl Table {
     pub fn columns(&self) -> Vec<String> {
         self.schema().columns()
     }
@@ -511,13 +534,11 @@ pub fn write_arrow(table: &Table) -> perspective_api::Result<Vec<u8>> {
             _ => todo!(),
         }
     }
-    // let b = arrow_array::RecordBatch::try_new(arrow_schema.clone(), array_refs).unwrap();
 
     let batch = arrow_array::RecordBatch::try_from_iter_with_nullable(array_refs).unwrap();
     builder.write(&batch).unwrap();
     builder.finish().unwrap();
     Ok(builder.into_inner().unwrap())
-    // arrow_array::Int32Array::new(values, nulls)
 }
 
 pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
@@ -566,7 +587,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_i32(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -588,7 +608,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_i64(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -612,7 +631,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_u32(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -634,7 +652,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_u64(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -657,7 +674,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_f32(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -679,7 +695,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_f64(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -705,7 +720,7 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         ffi_internal::fill_column_date(
                             pcol.column.clone(),
                             ptr,
-                            // nulls,
+                            nulls,
                             start_at,
                             col.len(),
                         )
@@ -717,10 +732,15 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .downcast_ref::<arrow_array::Date64Array>()
                         .unwrap();
                     let ptr = date64_data.values().as_ptr();
+                    let nulls = date64_data
+                        .nulls()
+                        .map(|x| x.inner().values().as_ptr())
+                        .unwrap_or(std::ptr::null());
                     unsafe {
                         ffi_internal::fill_column_time(
                             pcol.column.clone(),
                             ptr,
+                            nulls,
                             start_at,
                             col.len(),
                         )
@@ -750,7 +770,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_i32(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -786,7 +805,6 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                         .map(|x| x.inner().values().as_ptr())
                         .unwrap_or(std::ptr::null());
                     unsafe {
-                        // ffi_internal::fill_column_i64(pcol.column.clone(), ptr, start_at, col.len())
                         ffi_internal::fill_column_memcpy(
                             pcol.column.clone(),
                             ptr as *const std::ffi::c_char,
@@ -823,6 +841,10 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                             .unwrap();
                         let strings = values.values().as_ptr() as *const std::ffi::c_char;
                         let offsets = values.value_offsets();
+                        let nulls = keys
+                            .nulls()
+                            .map(|x| x.inner().values().as_ptr())
+                            .unwrap_or(std::ptr::null());
                         unsafe {
                             // TODO: not sure if this works for all cases
                             //       currently it makes the assumption that all
@@ -832,6 +854,7 @@ pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {
                                 strings,
                                 offsets,
                                 keys.values().as_ptr(),
+                                nulls,
                                 start_at,
                                 col.len(),
                             )
@@ -873,7 +896,7 @@ mod test {
         // len on nulls is the same as len on the array, but null_count is correct...
         assert_eq!(i32a.nulls().unwrap().null_count(), 1);
 
-        // Includes nulls *sigh*
+        // Includes nulls
         assert_eq!(i32a.values().len(), 5);
 
         // Obviously should be unchanged
@@ -951,6 +974,8 @@ mod test {
             .map(|x| x.name())
             .cloned()
             .collect::<HashSet<_>>();
+
+        // Need intersection to exclude metadata columns we add
         let fields = fields_lhs.intersection(&fields_rhs).collect::<Vec<_>>();
 
         for field in fields {
