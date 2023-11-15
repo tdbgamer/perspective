@@ -14,6 +14,7 @@ namespace ffi {
 std::unique_ptr<Pool> mk_pool();
 
 enum class DType : ::std::uint8_t;
+enum class Status : ::std::uint8_t;
 
 DType get_col_dtype(const Column& col);
 perspective::t_uindex get_dtype_size(DType dtype);
@@ -24,28 +25,13 @@ int64_t get_col_nth_i64(const Column& col, perspective::t_uindex idx);
 float get_col_nth_f32(const Column& col, perspective::t_uindex idx);
 double get_col_nth_f64(const Column& col, perspective::t_uindex idx);
 
+Status* get_col_raw_status(const Column& col);
+
 char* get_col_raw_data(const Column& col);
 
 void fill_column_memcpy(std::shared_ptr<Column> col, const char* ptr,
-    perspective::t_uindex start, perspective::t_uindex len, std::size_t size);
-
-void fill_column_u32(std::shared_ptr<Column> col, const std::uint32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
-
-void fill_column_u64(std::shared_ptr<Column> col, const std::uint64_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
-
-void fill_column_i32(std::shared_ptr<Column> col, const std::int32_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
-
-void fill_column_i64(std::shared_ptr<Column> col, const std::int64_t* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
-
-void fill_column_f32(std::shared_ptr<Column> col, const float* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
-
-void fill_column_f64(std::shared_ptr<Column> col, const double* ptr,
-    perspective::t_uindex start, perspective::t_uindex len);
+    const u_char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len, std::size_t size);
 
 void fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len);

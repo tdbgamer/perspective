@@ -5,6 +5,7 @@
 #include <perspective/base.h>
 #include <perspective/column.h>
 #include <chrono>
+#include <sys/_types/_u_char.h>
 
 namespace ffi {
 
@@ -63,22 +64,59 @@ get_col_raw_data(const Column& col) {
     return const_cast<char*>(col.get_nth<char>(0));
 }
 
+Status*
+get_col_raw_status(const Column& col) {
+    auto mutcol = const_cast<Column*>(&col);
+    const auto statuses
+        = const_cast<perspective::t_status*>(mutcol->get_nth_status(0));
+    return reinterpret_cast<Status*>(statuses);
+}
+
+static const u_char NULLMASK[]
+    = {1, 1 << 1, 1 << 2, 1 << 3, 1 << 4, 1 << 5, 1 << 6, 1 << 7};
+
+static inline bool
+is_not_null(const u_char* nullmask, perspective::t_uindex idx) {
+    // Example: if usize is 32-bit
+    // 0xFFFFFFFF - idx value
+    // 0xFFFFFFF1 - Shift off the lower 3 bits.
+    // ^ This indexes to the nearest byte since it effectively divides by 8.
+    //   but also, you only need 3 bits (dec 0-7) to index into a byte.
+
+    // Then we use the NULLMASK to index into the byte to see if our bit
+    // is set. Masking with 0x7 is the same as modding by 8.
+    return (nullmask[idx >> 3] & NULLMASK[idx & 7]) != 0;
+}
+
 void
 fill_column_memcpy(std::shared_ptr<Column> col, const char* ptr,
-    perspective::t_uindex start, perspective::t_uindex len, std::size_t size) {
+    const u_char* nullmask, perspective::t_uindex start,
+    perspective::t_uindex len, std::size_t size) {
     std::memcpy(col->get_nth<char>(start), ptr, len * size);
-    col->get_nth_status(0);
+
     perspective::t_status* status
-        = const_cast<perspective::t_status*>(col->get_nth_status(0));
-    // TODO: Definitely wrong, need to memcpy the statuses from null buffer
-    //       instead.
-    std::memset(status, perspective::t_status::STATUS_VALID, len);
+        = const_cast<perspective::t_status*>(col->get_nth_status(start));
+
+    // nullptr means nothing was null ;)
+    // unfortunately CXX doesn't support optional yet
+    if (nullmask == nullptr) {
+        std::memset(status, perspective::t_status::STATUS_VALID, len);
+        return;
+    }
+
+    for (perspective::t_uindex i = 0; i < len; ++i) {
+        if (is_not_null(nullmask, i)) {
+            status[i] = perspective::t_status::STATUS_VALID;
+        } else {
+            status[i] = perspective::t_status::STATUS_INVALID;
+        }
+    }
 }
 
 void
 fill_column_u32(std::shared_ptr<Column> col, const std::uint32_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         col->set_nth<std::uint32_t>(start + i, ptr[i]);
     }
 };
@@ -86,7 +124,7 @@ fill_column_u32(std::shared_ptr<Column> col, const std::uint32_t* ptr,
 void
 fill_column_u64(std::shared_ptr<Column> col, const std::uint64_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         col->set_nth<std::uint64_t>(start + i, ptr[i]);
     }
 };
@@ -94,7 +132,7 @@ fill_column_u64(std::shared_ptr<Column> col, const std::uint64_t* ptr,
 void
 fill_column_i32(std::shared_ptr<Column> col, const std::int32_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         col->set_nth<std::int32_t>(start + i, ptr[i]);
     }
 };
@@ -102,7 +140,7 @@ fill_column_i32(std::shared_ptr<Column> col, const std::int32_t* ptr,
 void
 fill_column_i64(std::shared_ptr<Column> col, const std::int64_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         col->set_nth<std::int64_t>(start + i, ptr[i]);
     }
 }
@@ -110,7 +148,7 @@ fill_column_i64(std::shared_ptr<Column> col, const std::int64_t* ptr,
 void
 fill_column_f32(std::shared_ptr<Column> col, const float* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         col->set_nth<float>(start + i, ptr[i]);
     }
 }
@@ -118,7 +156,7 @@ fill_column_f32(std::shared_ptr<Column> col, const float* ptr,
 void
 fill_column_f64(std::shared_ptr<Column> col, const double* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         col->set_nth<double>(start + i, ptr[i]);
     }
 }
@@ -126,7 +164,7 @@ fill_column_f64(std::shared_ptr<Column> col, const double* ptr,
 void
 fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         // Calculate year month and day from
         std::chrono::time_point<std::chrono::system_clock> tp
             = std::chrono::system_clock::from_time_t(
@@ -141,7 +179,7 @@ fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
 void
 fill_column_time(std::shared_ptr<Column> col, const std::int64_t* ptr,
     perspective::t_uindex start, perspective::t_uindex len) {
-    for (auto i = 0; i < len; ++i) {
+    for (perspective::t_uindex i = 0; i < len; ++i) {
         perspective::t_time time(ptr[i]);
         col->set_nth<perspective::t_time>(start + i, time);
     }
