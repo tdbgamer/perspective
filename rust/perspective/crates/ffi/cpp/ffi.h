@@ -25,6 +25,8 @@ int64_t get_col_nth_i64(const Column& col, perspective::t_uindex idx);
 float get_col_nth_f32(const Column& col, perspective::t_uindex idx);
 double get_col_nth_f64(const Column& col, perspective::t_uindex idx);
 
+rust::Vec<rust::String> get_col_vocab_strings(const Column& col);
+
 Status* get_col_raw_status(const Column& col);
 
 char* get_col_raw_data(const Column& col);

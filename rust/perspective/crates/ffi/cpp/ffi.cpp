@@ -58,6 +58,17 @@ get_col_nth_f64(const Column& col, perspective::t_uindex idx) {
     return *col.get_nth<double>(idx);
 }
 
+rust::Vec<rust::String>
+get_col_vocab_strings(const Column& col) {
+    rust::Vec<rust::String> strings;
+    auto mutcol = const_cast<Column*>(&col);
+    auto vocab = mutcol->_get_vocab();
+    for (perspective::t_uindex i = 0; i < vocab->get_vlenidx(); ++i) {
+        strings.push_back(rust::String(vocab->unintern_c(i)));
+    }
+    return strings;
+}
+
 char*
 get_col_raw_data(const Column& col) {
     return const_cast<char*>(col.get_nth<char>(0));
@@ -162,8 +173,21 @@ fill_column_dict(std::shared_ptr<Column> col, const char* dict,
         s.assign(dict + offsets[i], es);
         vocab->get_interned(s);
     }
-    fill_column_memcpy(col, reinterpret_cast<const char*>(ptr), nullmask, start,
-        len, sizeof(std::int32_t));
+    // :'(  doesn't work because the source data is i32 and the target is usize
+    //
+    // fill_column_memcpy(col, reinterpret_cast<const char*>(ptr), nullmask,
+    // start,
+    //     len, sizeof(perspective::t_uindex));
+
+    auto has_nulls = nullmask != nullptr;
+    for (perspective::t_uindex i = 0; i < len; ++i) {
+        if (has_nulls && !is_not_null(nullmask, i)) {
+            // If set_nth is never called on that cell, the value will be
+            // "invalid" or "null".
+            continue;
+        }
+        col->set_nth<perspective::t_uindex>(start + i, ptr[i]);
+    }
 }
 
 perspective::t_uindex

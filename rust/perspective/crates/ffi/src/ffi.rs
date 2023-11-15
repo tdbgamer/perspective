@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow_array::Array;
-use arrow_buffer::NullBuffer;
+use arrow_buffer::{NullBuffer, ScalarBuffer};
 use arrow_schema::{DataType, TimeUnit};
 use cxx::let_cxx_string;
 use cxx::{SharedPtr, UniquePtr};
@@ -81,6 +81,8 @@ mod ffi_internal {
         pub fn get_col_nth_u64(col: &Column, idx: usize) -> u64;
         pub fn get_col_nth_i32(col: &Column, idx: usize) -> i32;
         pub fn get_col_nth_i64(col: &Column, idx: usize) -> i64;
+
+        pub fn get_col_vocab_strings(col: &Column) -> Vec<String>;
 
         pub fn get_dtype_size(dtype: DType) -> usize;
 
@@ -225,10 +227,20 @@ impl Column {
         unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }
     }
 
+    pub unsafe fn as_slice_t<T>(&self) -> &[T] {
+        let ptr = unsafe { self.get_raw_data() };
+        let len = self.size();
+        unsafe { std::slice::from_raw_parts(ptr as *const T, len) }
+    }
+
     pub fn status_slice(&self) -> &[ffi_internal::Status] {
         let ptr = unsafe { self.get_raw_status() };
         let len = self.size();
         unsafe { std::slice::from_raw_parts(ptr, len) }
+    }
+
+    pub fn get_vocab_strings(&self) -> Vec<String> {
+        ffi_internal::get_col_vocab_strings(&self.column)
     }
 }
 
@@ -530,6 +542,24 @@ pub fn write_arrow(table: &Table) -> perspective_api::Result<Vec<u8>> {
                 let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);
                 let array = arrow_array::Float64Array::new(scalar_buffer, Some(nullbuff));
                 array_refs.push((col_name, Arc::new(array), true));
+            }
+            DType::DTYPE_STR => {
+                // Sadly required since perspective engine stores string offsets as a 32/64 bit integer
+                // on WASM vs native. We should probably forbid architecture defined sizes in the engine
+                // to prevent this kind of thing from happening.
+                let scalar_buffer: ScalarBuffer<i32> = if std::mem::size_of::<usize>() == 8 {
+                    arrow_buffer::ScalarBuffer::from_iter(
+                        unsafe { col.as_slice_t::<u64>() }.iter().map(|x| *x as i32),
+                    )
+                } else {
+                    arrow_buffer::ScalarBuffer::from(buffer)
+                };
+
+                let keys = arrow_array::Int32Array::new(scalar_buffer, Some(nullbuff));
+
+                let strings = arrow_array::StringArray::from(col.get_vocab_strings());
+                let dict = arrow_array::DictionaryArray::new(keys, Arc::new(strings));
+                array_refs.push((col_name, Arc::new(dict), true));
             }
             _ => todo!(),
         }
@@ -945,6 +975,32 @@ mod test {
         let new_pprint = round_trip.pretty_print(10);
         // TODO: Whyyyy are these being reordered? Nulls work though, so I guess that's good.
         assert_eq!(old_pprint, new_pprint);
+        assert_arrow_arrays_same(raw_arrow_bytes.as_slice(), psp_arrow_bytes.as_slice());
+    }
+
+    #[test]
+    pub fn test_string_column() {
+        let dict = vec!["a", "b", "c", "d"]
+            .into_iter()
+            .collect::<arrow_array::DictionaryArray<arrow_array::types::Int32Type>>();
+        let arrow = arrow_array::RecordBatch::try_from_iter_with_nullable(vec![(
+            "a",
+            Arc::new(dict) as ArrayRef,
+            true,
+        )])
+        .unwrap();
+        let mut writer =
+            arrow_ipc::writer::StreamWriter::try_new(Vec::new(), &arrow.schema()).unwrap();
+        writer.write(&arrow).unwrap();
+        writer.finish().unwrap();
+        let raw_arrow_bytes = writer.into_inner().unwrap();
+        let table = read_arrow(raw_arrow_bytes.as_slice()).unwrap();
+        // let old_pprint = table.pretty_print(3);
+        let psp_arrow_bytes = write_arrow(&table).unwrap();
+        let round_trip = read_arrow(psp_arrow_bytes.as_slice()).unwrap();
+        // let new_pprint = round_trip.pretty_print(10);
+
+        // assert_eq!(old_pprint, new_pprint);
         assert_arrow_arrays_same(raw_arrow_bytes.as_slice(), psp_arrow_bytes.as_slice());
     }
 
