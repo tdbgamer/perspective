@@ -1,6 +1,7 @@
 #include "ffi.h"
 #include "perspective/raw_types.h"
 #include "types.h"
+#include <iostream>
 #include <memory>
 #include <perspective/base.h>
 #include <perspective/column.h>
@@ -140,7 +141,14 @@ fill_column_date(std::shared_ptr<Column> col, const std::int32_t* ptr,
                 ptr[i] * 24 * 60 * 60); // days to seconds
         std::time_t time = std::chrono::system_clock::to_time_t(tp);
         std::tm* date = std::localtime(&time);
-        perspective::t_date dt(date->tm_year, date->tm_mon, date->tm_mday);
+        // std::cout << "idx: " << i << std::endl
+        //           << "value: " << ptr[i] << std::endl
+        //           << "year: " << date->tm_year + 1900 << std::endl
+        //           << "month: " << date->tm_mon << std::endl
+        //           << "day: " << date->tm_mday << std::endl
+        //           << std::endl;
+        perspective::t_date dt(
+            date->tm_year + 1900, date->tm_mon, date->tm_mday);
         col->set_nth<perspective::t_date>(start + i, dt);
     }
 }
