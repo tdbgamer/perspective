@@ -511,8 +511,11 @@ pub fn write_arrow(table: &Table) -> perspective_api::Result<Vec<u8>> {
                 .iter()
                 .map(|x| x == &ffi_internal::Status::STATUS_VALID),
         );
-        arrow_buffer::Buffer::from_vec(vec![0u8; col.size()]);
-        let buffer = arrow_buffer::Buffer::from_bytes(col.as_slice());
+        // TODO: This is broken. It uses the length of the slice as count of elements rather than number
+        //       of bytes.
+        //
+        //       Should probably find a way to use Buffer::from_bytes() or something.
+        let buffer = arrow_buffer::Buffer::from_slice_ref(col.as_slice());
         match col_dtype {
             DType::DTYPE_INT32 => {
                 let scalar_buffer = arrow_buffer::ScalarBuffer::from(buffer);

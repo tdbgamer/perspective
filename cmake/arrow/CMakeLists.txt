@@ -99,7 +99,8 @@ set(ARROW_SRCS
     ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/formatting.cc
     ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/future.cc
     ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/int_util.cc
-    ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/io_util.cc
+    # ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/io_util.cc
+    ${PSP_CPP_SRC}/src/cpp/vendor/io_util.cpp
     ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/logging.cc
     ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/key_value_metadata.cc
     ${CMAKE_BINARY_DIR}/arrow-src/cpp/src/arrow/util/memory.cc
@@ -242,7 +243,7 @@ else()
         ${PSP_CPP_SRC}/src/cpp/vendor/arrow_single_threaded_reader.cpp)
 endif()
 
-set_property(SOURCE util/io_util.cc
+set_property(SOURCE ${PSP_CPP_SRC}/src/cpp/vendor/io_util.cpp
     APPEND_STRING
     PROPERTY COMPILE_FLAGS " -Wno-unused-macros -stdlib=libc++")
 
@@ -309,3 +310,5 @@ target_link_libraries(arrow
 # VERBATIM)
 add_custom_target(arrow_fb_files DEPENDS ${FBS_OUTPUT_FILES})
 add_dependencies(arrow arrow_fb_files)
+
+target_include_directories(arrow BEFORE PRIVATE /Users/timothybess/src/perspective/cpp/perspective/src/include/vendor)

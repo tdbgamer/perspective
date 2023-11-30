@@ -210,10 +210,11 @@ if(PSP_WASM_BUILD)
     # set(CMAKE_TOOLCHAIN_FILE "$ENV{EMSCRIPTEN_ROOT}/cmake/Modules/Platform/Emscripten.cmake")
     # set(CMAKE_AR emar)
     # set(CMAKE_RANLIB emranlib)
-    # SET(UNIX 1)
+    SET(UNIX 1)
     add_definitions(-D_WASI_EMULATED_SIGNAL)
     add_definitions(-D_WASI_EMULATED_MMAN)
     add_definitions(-D_WASI_EMULATED_PROCESS_CLOCKS)
+    add_definitions(-D_WASI_EMULATED_GETPID)
     add_compile_definitions(__EMSCRIPTEN__=1)
     set(CMAKE_EXECUTABLE_SUFFIX ".js")
     list(APPEND CMAKE_PREFIX_PATH /usr/local)
@@ -385,6 +386,9 @@ psp_build_dep("double-conversion" "${PSP_CMAKE_MODULE_PATH}/double-conversion.tx
 psp_build_dep("flatbuffers" "${PSP_CMAKE_MODULE_PATH}/flatbuffers.txt.in")
 psp_build_dep("lz4" "${PSP_CMAKE_MODULE_PATH}/lz4.txt.in")
 
+# Build minimal arrow itself
+psp_build_dep("arrow" "${PSP_CMAKE_MODULE_PATH}/arrow.txt.in")
+
 # Build re2 as our regex library
 # this is a workaround for some re2-specific weirdness
 add_definitions(-DTARGET_OS_OSX=1)
@@ -410,14 +414,18 @@ set(CMAKE_CXX_FLAGS " \
     ${OPT_FLAGS} \
     ")
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++1y")
-endif()
+# if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++1y")
+# endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++1y")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++1y")
 
 set(SOURCE_FILES
     ${PSP_CPP_SRC}/src/cpp/aggregate.cpp
     ${PSP_CPP_SRC}/src/cpp/aggspec.cpp
     ${PSP_CPP_SRC}/src/cpp/arg_sort.cpp
+    ${PSP_CPP_SRC}/src/cpp/arrow_loader.cpp
+    ${PSP_CPP_SRC}/src/cpp/arrow_writer.cpp
     ${PSP_CPP_SRC}/src/cpp/base.cpp
     ${PSP_CPP_SRC}/src/cpp/base_impl_linux.cpp
     ${PSP_CPP_SRC}/src/cpp/base_impl_osx.cpp
@@ -499,6 +507,7 @@ set(SOURCE_FILES
     ${PSP_CPP_SRC}/src/cpp/view.cpp
     ${PSP_CPP_SRC}/src/cpp/view_config.cpp
     ${PSP_CPP_SRC}/src/cpp/vocab.cpp
+    ${PSP_CPP_SRC}/src/cpp/arrow_csv.cpp
 )
 
 set(PYTHON_SOURCE_FILES ${SOURCE_FILES}
@@ -553,7 +562,7 @@ if(PSP_WASM_BUILD)
     add_library(psp ${WASM_SOURCE_FILES})
     target_compile_definitions(psp PRIVATE PSP_ENABLE_WASM=1)
     set_target_properties(psp PROPERTIES COMPILE_FLAGS "")
-    target_link_libraries(psp re2)
+    target_link_libraries(psp arrow re2)
 
     # "cjs/perspective.cpp.js" from CMAKE_EXECUTABLE_SYNTAX
     # add_executable(perspective_cjs src/cpp/emscripten.cpp)
@@ -597,7 +606,7 @@ elseif(PSP_CPP_BUILD OR PSP_PYTHON_BUILD)
         include_directories(${PSP_PYTHON_SRC}/include)
         target_compile_definitions(psppy PRIVATE PSP_ENABLE_PYTHON=1)
         target_compile_options(psppy PRIVATE -fvisibility=hidden)
-        target_link_libraries(psppy re2)
+        target_link_libraries(psppy arrow re2)
         add_custom_command(TARGET psppy POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:psppy> ${PSP_PYTHON_SRC}/table/)
     elseif(PSP_PYTHON_BUILD)
         # #######################
@@ -629,7 +638,7 @@ elseif(PSP_CPP_BUILD OR PSP_PYTHON_BUILD)
         endif()
 
         # Link against minimal arrow static library
-        target_link_libraries(psp re2 Boost::thread)
+        target_link_libraries(psp arrow re2 Boost::thread)
         target_link_libraries(psppy psp)
 
         # The compiled libraries will be put in CMAKE_LIBRARY_OUTPUT_DIRECTORY by default. In the
@@ -642,7 +651,7 @@ elseif(PSP_CPP_BUILD OR PSP_PYTHON_BUILD)
     # #######################
     else()
         add_library(psp STATIC ${WASM_SOURCE_FILES})
-        target_link_libraries(psp re2)
+        target_link_libraries(psp re2 arrow)
     endif()
 
     if(PSP_CPP_BUILD_STRICT AND NOT WIN32)
@@ -658,3 +667,5 @@ elseif(PSP_CPP_BUILD OR PSP_PYTHON_BUILD)
         target_compile_definitions(psp PRIVATE _WIN32=1)
     endif()
 endif()
+
+target_include_directories(psp BEFORE PRIVATE /Users/timothybess/src/perspective/cpp/perspective/src/include/vendor)
