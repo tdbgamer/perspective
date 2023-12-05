@@ -311,4 +311,6 @@ target_link_libraries(arrow
 add_custom_target(arrow_fb_files DEPENDS ${FBS_OUTPUT_FILES})
 add_dependencies(arrow arrow_fb_files)
 
-target_include_directories(arrow BEFORE PRIVATE /Users/timothybess/src/perspective/cpp/perspective/src/include/vendor)
+if (PSP_WASM_BUILD)
+    target_include_directories(arrow BEFORE PRIVATE /Users/timothybess/src/perspective/cpp/perspective/src/include/vendor)
+endif()

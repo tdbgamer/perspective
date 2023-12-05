@@ -1,10 +1,13 @@
 #include "ffi.h"
+#include "perspective/context_unit.h"
 #include "perspective/raw_types.h"
 #include "types.h"
 #include <iostream>
 #include <memory>
 #include <perspective/base.h>
 #include <perspective/column.h>
+#include <perspective/view_config.h>
+#include <perspective/view.h>
 #include <chrono>
 
 namespace ffi {
@@ -343,6 +346,87 @@ std::unique_ptr<DataTable>
 table_extend(std::unique_ptr<DataTable> table, perspective::t_uindex num_rows) {
     table->extend(num_rows);
     return table;
+}
+
+// t_view_config(const std::vector<std::string>& row_pivots,
+//     const std::vector<std::string>& column_pivots,
+//     const tsl::ordered_map<std::string, std::vector<std::string>>&
+//         aggregates,
+//     const std::vector<std::string>& columns,
+//     const std::vector<std::tuple<std::string, std::string,
+//         std::vector<t_tscalar>>>& filter,
+//     const std::vector<std::vector<std::string>>& sort,
+//     const std::vector<std::shared_ptr<t_computed_expression>>& expressions,
+//     const std::string& filter_op, bool column_only);
+
+static std::shared_ptr<perspective::t_ctxunit>
+make_context(std::shared_ptr<Table> table,
+    std::shared_ptr<perspective::t_schema> schema,
+    std::shared_ptr<perspective::t_view_config> view_config,
+    const std::string& name) {
+    auto columns = view_config->get_columns();
+    auto fterm = view_config->get_fterm();
+
+    auto cfg = perspective::t_config(columns);
+    auto ctx_unit
+        = std::make_shared<perspective::t_ctxunit>(*(schema.get()), cfg);
+    ctx_unit->init();
+
+    auto pool = table->get_pool();
+    auto gnode = table->get_gnode();
+
+    pool->register_context(gnode->get_id(), name, perspective::UNIT_CONTEXT,
+        reinterpret_cast<std::uintptr_t>(ctx_unit.get()));
+
+    return ctx_unit;
+}
+
+rust::Vec<std::uint8_t>
+table_to_arrow(std::shared_ptr<Table> table) {
+    std::vector<std::string> row_pivots;
+    std::vector<std::string> column_pivots;
+    tsl::ordered_map<std::string, std::vector<std::string>> aggregates;
+    std::vector<std::string> columns;
+    std::vector<std::tuple<std::string, std::string,
+        std::vector<perspective::t_tscalar>>>
+        filter;
+    std::vector<std::vector<std::string>> sort;
+    std::vector<std::shared_ptr<perspective::t_computed_expression>>
+        expressions;
+    std::string filter_op = "and";
+    // Only false for now because we're dealing with tables only.
+    bool column_only = false;
+
+    auto schema = std::make_shared<perspective::t_schema>(table->get_schema());
+    for (auto& col : schema->columns()) {
+        columns.push_back(col);
+    }
+
+    auto view_config = std::make_shared<perspective::t_view_config>(row_pivots,
+        column_pivots, aggregates, columns, filter, sort, expressions,
+        filter_op, column_only);
+
+    // transform primitive values into abstractions that the engine can use
+    view_config->init(schema);
+
+    auto name = "__ffi_temp_view";
+    auto ctx = make_context(table, schema, view_config, name);
+
+    auto view_ptr = std::make_shared<perspective::View<perspective::t_ctxunit>>(
+        table, ctx, name, "-", view_config);
+
+    // std::shared_ptr<std::string> to_arrow(std::int32_t start_row,
+    //     std::int32_t end_row, std::int32_t start_col, std::int32_t end_col,
+    //     bool emit_group_by, bool compress) const;
+
+    auto arrow_bytestring = view_ptr->to_arrow(
+        0, table->size(), 0, schema->get_num_columns(), false, false);
+
+    rust::Vec<std::uint8_t> vec;
+    for (auto& c : *arrow_bytestring) {
+        vec.push_back(c);
+    }
+    return vec;
 }
 
 } // namespace ffi

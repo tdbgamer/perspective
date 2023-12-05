@@ -53,11 +53,24 @@ fn main() {
                 .display()
                 .to_string()
         );
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_path
+                .join("arrow-build")
+                // .join(profile) blocked by https://github.com/rust-lang/rust/issues/39016
+                .join("Release")
+                .display()
+                .to_string()
+        );
     } else {
         println!("cargo:rustc-link-search=native={}", out_path_str);
         println!(
             "cargo:rustc-link-search=native={}",
             out_path.join("re2-build").display().to_string()
+        );
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_path.join("arrow-build").display().to_string()
         );
     }
 
@@ -76,6 +89,8 @@ fn main() {
         .include(out_path.join("exprtk-src"))
         .include(out_path.join("re2-src"))
         .include(out_path.join("ordered-map-src/include"))
+        .include(out_path.join("rapidjson-src/include"))
+        .include(out_path.join("arrow-src/cpp/src"))
         .opt_level(3);
 
     if windows {
@@ -95,7 +110,7 @@ fn main() {
     } else {
         builder.flag("-DPSP_CPP_BUILD=1");
     }
-    builder.flag_if_supported("-std=c++1y");
+    builder.flag_if_supported("-std=c++17");
 
     builder.compile("bridge");
 
@@ -111,4 +126,5 @@ fn main() {
 
     println!("cargo:rustc-link-lib=static=psp");
     println!("cargo:rustc-link-lib=static=re2");
+    println!("cargo:rustc-link-lib=static=arrow");
 }

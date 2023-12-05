@@ -76,4 +76,6 @@ std::unique_ptr<DataTable> mk_data_table(
 std::unique_ptr<DataTable> table_extend(
     std::unique_ptr<DataTable> table, perspective::t_uindex num_rows);
 
+rust::Vec<std::uint8_t> table_to_arrow(std::shared_ptr<Table> table);
+
 } // namespace ffi

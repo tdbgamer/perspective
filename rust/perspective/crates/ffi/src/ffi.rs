@@ -145,6 +145,8 @@ mod ffi_internal {
 
         pub fn mk_schema(column_names: Vec<String>, data_types: Vec<DType>) -> UniquePtr<Schema>;
         pub fn mk_data_table(schema: &Schema, capacity: usize) -> UniquePtr<DataTable>;
+
+        pub fn table_to_arrow(table: SharedPtr<Table>) -> Vec<u8>;
     }
 }
 pub use ffi_internal::mk_pool;
@@ -599,6 +601,10 @@ pub fn write_arrow(table: &Table) -> perspective_api::Result<Vec<u8>> {
     builder.write(&batch).unwrap();
     builder.finish().unwrap();
     Ok(builder.into_inner().unwrap())
+}
+
+pub fn write_arrow_cpp(table: &Table) -> perspective_api::Result<Vec<u8>> {
+    Ok(ffi_internal::table_to_arrow(table.table.clone()))
 }
 
 pub fn read_arrow(bytes: &[u8]) -> perspective_api::Result<Table> {

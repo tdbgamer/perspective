@@ -668,4 +668,6 @@ elseif(PSP_CPP_BUILD OR PSP_PYTHON_BUILD)
     endif()
 endif()
 
-target_include_directories(psp BEFORE PRIVATE /Users/timothybess/src/perspective/cpp/perspective/src/include/vendor)
+if (PSP_WASM_BUILD)
+    target_include_directories(psp BEFORE PRIVATE /Users/timothybess/src/perspective/cpp/perspective/src/include/vendor)
+endif()
