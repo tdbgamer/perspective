@@ -62,6 +62,15 @@ fn main() {
                 .display()
                 .to_string()
         );
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_path
+                .join("lz4-build")
+                // .join(profile) blocked by https://github.com/rust-lang/rust/issues/39016
+                .join("Release")
+                .display()
+                .to_string()
+        );
     } else {
         println!("cargo:rustc-link-search=native={}", out_path_str);
         println!(
@@ -71,6 +80,10 @@ fn main() {
         println!(
             "cargo:rustc-link-search=native={}",
             out_path.join("arrow-build").display().to_string()
+        );
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_path.join("lz4-build").display().to_string()
         );
     }
 
@@ -127,4 +140,5 @@ fn main() {
     println!("cargo:rustc-link-lib=static=psp");
     println!("cargo:rustc-link-lib=static=re2");
     println!("cargo:rustc-link-lib=static=arrow");
+    println!("cargo:rustc-link-lib=static=lz4");
 }
