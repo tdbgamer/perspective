@@ -22,10 +22,12 @@ __all__ = [
     "create_sync_client",
 ]
 
-from .perspective import PySyncClient, PerspectiveError, PySyncServer
+from .perspective import PySyncClient, PerspectiveError
 
 from .widget import PerspectiveWidget
 from .viewer import PerspectiveViewer
+
+from .psp_cffi import ServerBase, Session
 
 try:
     from .handlers import PerspectiveTornadoHandler
@@ -37,7 +39,7 @@ def default_loop_cb(fn, *args, **kwargs):
     return fn(*args, **kwargs)
 
 
-class Server(PySyncServer):
+class Server(ServerBase):
     def set_threadpool_size(self, n_cpus):
         pass
 

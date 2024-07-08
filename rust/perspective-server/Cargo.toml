@@ -20,7 +20,7 @@ repository = "https://github.com/finos/perspective"
 license = "Apache-2.0"
 homepage = "https://perspective.finos.org"
 keywords = []
-build = "build.rs"
+build = "build/main.rs"
 include = [
     "src/**/*",
     "include/**/*",
@@ -35,6 +35,7 @@ default = ["python"]
 external-cpp = []
 wasm-exceptions = []
 python = []
+export-cpp-only = []
 
 [build-dependencies]
 cxx-build = "1.0.115"

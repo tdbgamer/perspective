@@ -10,43 +10,64 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-use std::collections::HashSet;
-use std::path::Path;
-use std::{fs, io};
+import sh from "../../tools/perspective-scripts/sh.mjs";
+import { execSync } from "child_process";
+import * as url from "url";
+import * as fs from "fs";
 
-fn copy_dir_all(
-    src: impl AsRef<Path>,
-    dst: impl AsRef<Path>,
-    skip: &HashSet<&str>,
-) -> io::Result<()> {
-    fs::create_dir_all(&dst)?;
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        if ty.is_dir() {
-            if !skip.contains(&*entry.file_name().to_string_lossy()) {
-                copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()), skip)?;
-            }
-        } else {
-            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
-        }
-    }
+const is_pyodide = !!process.env.PSP_PYODIDE;
 
-    Ok(())
+const __dirname = url.fileURLToPath(new URL(".", import.meta.url)).slice(0, -1);
+const emsdkdir = sh.path`${__dirname}/../../.emsdk`;
+const { emscripten } = JSON.parse(
+    fs.readFileSync(sh.path`${__dirname}/../../package.json`)
+);
+
+const cmd = sh(process.argv.slice(2).join(" "));
+
+cmd.env({
+    PSP_ROOT_DIR: "../..",
+});
+
+if (is_pyodide) {
+    cmd.sh`. ${emsdkdir}/emsdk_env.sh >/dev/null 2>&1`
+        .sh`emsdk activate ${emscripten} >/dev/null`;
 }
 
-fn main() {
-    pyo3_build_config::add_extension_module_link_args();
+const python_version = process.env.PSP_PYTHON_VERSION || "3.12";
 
-    if std::env::var("CARGO_FEATURE_EXTERNAL_CPP").is_ok() {
-        println!("cargo:warning=MESSAGE Building in development mode");
-        let root_dir_env = std::env::var("PSP_ROOT_DIR").expect("Must set PSP_ROOT_DIR");
-        let root_dir = Path::new(root_dir_env.as_str());
-        copy_dir_all(
-            Path::join(root_dir, "rust/perspective-client/docs"),
-            "docs",
-            &HashSet::new(),
-        )
-        .expect("Error installing docs");
-    }
+let target = "";
+if (is_pyodide) {
+    target = "--target=wasm32-unknown-emscripten ";
+} else if (process.env.PSP_ARCH === "x86_64" && process.platform === "darwin") {
+    target = "--target=x86_64-apple-darwin ";
+} else if (
+    process.env.PSP_ARCH === "aarch64" &&
+    process.platform === "darwin"
+) {
+    target = "--target=aarch64-apple-darwin ";
+} else if (process.env.PSP_ARCH === "x86_64" && process.platform === "linux") {
+    target = "--target=x86_64-unknown-linux-gnu ";
+} else if (process.env.PSP_ARCH === "aarch64" && process.platform === "linux") {
+    target = "--target=aarch64-unknown-linux-gnu ";
+} else {
+    // target = `--target=${get_host_triple()} `;
 }
+
+const maturin_flags =
+    `-ipython${python_version} ` +
+    target +
+    (process.env.PSP_DEBUG ? "" : "--release ");
+
+const maturin_command =
+    process.env.PSP_DEBUG || process.env.PSP_DEV_MODE ? "develop" : "build";
+
+function get_host_triple() {
+    return /host\: (.+?)$/gm.exec(execSync(`rustc -vV`).toString())[1];
+}
+
+cmd.sh(
+    `maturin ${maturin_command} --features=external-cpp --sdist ${maturin_flags}`
+);
+
+await cmd();
