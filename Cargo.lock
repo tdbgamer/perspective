@@ -1883,15 +1883,18 @@ name = "perspective-python"
 version = "2.10.1"
 dependencies = [
  "async-lock",
+ "cmake",
+ "cxx-build",
  "extend",
  "futures",
+ "num_cpus",
  "perspective-client",
- "perspective-server",
  "pollster",
  "pyo3",
  "pyo3-build-config 0.20.3",
  "python-config-rs",
  "pythonize",
+ "tempfile",
  "tracing",
  "tracing-subscriber",
 ]
@@ -1906,6 +1909,7 @@ dependencies = [
  "cxx-build",
  "futures",
  "num_cpus",
+ "tempfile",
  "tracing",
 ]
 

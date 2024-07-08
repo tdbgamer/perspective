@@ -7,10 +7,16 @@
         "type": "git",
         "url": "https://github.com/finos/perspective"
     },
+    "type": "module",
     "license": "Apache-2.0",
     "scripts": {
-        "build": "node build.mjs",
+        "build": "node ./build.js",
+        "develop": "PSP_ROOT_DIR=../.. maturin develop --features=external-cpp",
+        "build_pyodide": "PSP_ROOT_DIR=../.. maturin build --features=external-cpp --target=wasm32-unknown-emscripten -i python3.12",
         "clean": "rimraf dist && rimraf build",
         "test": "python -m pytest perspective/tests"
+    },
+    "devDependencies": {
+        "cpy": "^9.0.1"
     }
 }
