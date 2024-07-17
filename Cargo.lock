@@ -1894,6 +1894,7 @@ dependencies = [
  "pyo3-build-config 0.20.3",
  "python-config-rs",
  "pythonize",
+ "tempfile",
  "tracing",
  "tracing-subscriber",
 ]
@@ -1908,6 +1909,7 @@ dependencies = [
  "cxx-build",
  "futures",
  "num_cpus",
+ "tempfile",
  "tracing",
 ]
 

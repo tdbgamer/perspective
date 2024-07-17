@@ -23,11 +23,14 @@ const { emscripten } = JSON.parse(
     fs.readFileSync(sh.path`${__dirname}/../../package.json`)
 );
 
-const cmd = sh(process.argv.slice(2).join(" "));
+const cmd = sh();
 
-cmd.env({
-    PSP_ROOT_DIR: "../..",
-});
+// if not windows
+if (process.platform !== "win32") {
+    cmd.env({
+        PSP_ROOT_DIR: "../..",
+    });
+}
 
 if (is_pyodide) {
     cmd.sh`. ${emsdkdir}/emsdk_env.sh >/dev/null 2>&1`
@@ -67,7 +70,8 @@ function get_host_triple() {
 }
 
 cmd.sh(
-    `maturin ${maturin_command} --features=external-cpp --sdist ${maturin_flags}`
+    `maturin ${maturin_command} --features=external-cpp --verbose ${maturin_flags}`
 );
 
-await cmd();
+console.log("RUNNING_CMD: ", cmd.toString());
+cmd.runSync();

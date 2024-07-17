@@ -132,8 +132,8 @@ jobs:
             fail-fast: false
             matrix:
                 os:
-                    - ubuntu-22.04
-                    - macos-13
+                    # - ubuntu-22.04
+                    # - macos-13
                     - windows-2022
                 arch:
                     - aarch64
@@ -149,6 +149,14 @@ jobs:
                       arch: aarch64
 
         steps:
+            # - name: Enable longpath
+            #   run: |
+            #       New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+            #       New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Command Processor' -Name 'DisableUNCCheck' -Force
+            #       Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Command Processor' -Name 'DisableUNCCheck' -Type DWord -Value 1
+            #       gpupdate /force
+            #   if: ${{ contains(matrix.os, 'windows') }}
+
             - name: Checkout
               uses: actions/checkout@v4
 
@@ -173,7 +181,38 @@ jobs:
 
             - name: Python Build
               run: pnpm run build
+              if: ${{ !contains(matrix.os, 'windows') }}
               env:
+                  # CARGO_TARGET_DIR: \\?\D:\psp-rust
+                  # CARGO_TARGET_DIR: \\?\D:\${{ github.workspace }}\target
+                  VCPKG_ROOT: ${{ steps.init-step.outputs.VCPKG_INSTALLATION_ROOT }}
+                  PACKAGE: "perspective-python"
+                  PSP_USE_CCACHE: 1
+                  PSP_ARCH: ${{ matrix.arch }}
+                  CI: 1
+
+            - name: Python Build Pyodide
+              run: pnpm run build
+              if: ${{ contains(matrix.os, 'ubuntu') }}
+              env:
+                  PSP_PYODIDE: 1
+                  PACKAGE: "perspective-python"
+                  PSP_USE_CCACHE: 1
+                  CI: 1
+
+            - name: Debugging with tmate
+              uses: mxschmitt/action-tmate@v3.18
+
+            - name: Python Build (Windows)
+              run: |
+                  New-Item -ItemType Directory -Path $env:CARGO_TARGET_DIR -Force
+                  pnpm run build
+              if: ${{ contains(matrix.os, 'windows') }}
+              # working-directory: \\?\${{github.workspace}}
+              env:
+                  CARGO_TARGET_DIR: D:\psp-rust
+                  PSP_ROOT_DIR: ${{ github.workspace }}
+                  # CARGO_TARGET_DIR: \\?\${{ github.workspace }}\target
                   VCPKG_ROOT: ${{ steps.init-step.outputs.VCPKG_INSTALLATION_ROOT }}
                   PACKAGE: "perspective-python"
                   PSP_USE_CCACHE: 1

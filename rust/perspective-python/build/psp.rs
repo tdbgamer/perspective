@@ -54,6 +54,10 @@ pub fn cmake_build() -> Result<PathBuf, std::io::Error> {
     }
 
     let mut dst = Config::new("cpp/perspective");
+    if cfg!(windows) {
+        std::fs::create_dir_all("D:\\psp-build")?;
+        dst.out_dir("D:\\psp-build");
+    }
     let profile = std::env::var("PROFILE").unwrap();
     dst.always_configure(true);
     dst.define("CMAKE_BUILD_TYPE", profile.as_str());

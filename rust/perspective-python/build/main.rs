@@ -91,6 +91,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     std::fs::copy(
         artifact_dir.join("build").join(source_name),
         manifest_dir.join("perspective").join(dylib_name),
-    )?;
+    ).expect("Could not copy dylib to perspective/");
     Ok(())
 }
