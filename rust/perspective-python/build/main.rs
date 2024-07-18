@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .as_str()
     {
         "emscripten" => "psppy.wasm".to_string(),
-        "windows" => "psppy.dll".to_string(),
+        "windows" => "libpsp.dll".to_string(),
         _ => "libpsp.so".to_string(),
     };
 
