@@ -21,7 +21,10 @@ else:
     ext = "so"
     if platform.system().lower() == "windows":
         ext = "dll"
-    dylib_name = f"{platform.system().lower()}-{platform.machine().lower()}-libpsp.so"
+    arch = platform.machine().lower()
+    if arch == "amd64":
+        arch = "x86_64"
+    dylib_name = f"{platform.system().lower()}-{arch}-libpsp.so"
     lib = ctypes.CDLL(os.path.join(os.path.dirname(__file__), dylib_name))
 
 
