@@ -70,7 +70,7 @@ function get_host_triple() {
 }
 
 cmd.sh(
-    `maturin ${maturin_command} --features=external-cpp --verbose ${maturin_flags}`
+    `maturin ${maturin_command} --features=external-cpp ${maturin_flags}`
 );
 
 console.log("RUNNING_CMD: ", cmd.toString());

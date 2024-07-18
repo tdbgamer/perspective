@@ -88,9 +88,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let dylib_name = format!("{}-{}-libpsp.{}", system, machine, ext);
 
+    println!(
+        "Artifact dir: {:?}",
+        artifact_dir.join("build").join(&source_name)
+    );
+    println!(
+        "Manifest dir: {:?}",
+        manifest_dir.join("perspective").join(&dylib_name)
+    );
+
     std::fs::copy(
         artifact_dir.join("build").join(source_name),
         manifest_dir.join("perspective").join(dylib_name),
-    ).expect("Could not copy dylib to perspective/");
+    )
+    .expect("Could not copy dylib to perspective/");
     Ok(())
 }
