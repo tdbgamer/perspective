@@ -24,7 +24,7 @@ else:
     arch = platform.machine().lower()
     if arch == "amd64":
         arch = "x86_64"
-    dylib_name = f"{platform.system().lower()}-{arch}-libpsp.so"
+    dylib_name = f"{platform.system().lower()}-{arch}-libpsp.{ext}"
     lib = ctypes.CDLL(os.path.join(os.path.dirname(__file__), dylib_name))
 
 
