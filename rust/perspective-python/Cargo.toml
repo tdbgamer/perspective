@@ -48,10 +48,9 @@ crate-type = ["cdylib"]
 [build-dependencies]
 cxx-build = "1.0.115"
 cmake = "0.1.50"
-num_cpus = "1.16.0"
+num_cpus = "^1.16.0"
 pyo3-build-config = "0.20.2"
 python-config-rs = "0.1.2"
-tempfile = "3.10.1"
 
 [dependencies]
 async-lock = "2.5.0"

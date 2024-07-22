@@ -687,6 +687,7 @@ elseif(PSP_CPP_BUILD OR PSP_PYTHON_BUILD)
 
             target_compile_options(psp PRIVATE -fvisibility=hidden)
             # target_compile_options(psppy PRIVATE -fvisibility=hidden)
+        elseif(MANYLINUX)
         else()
             target_compile_options(psp PRIVATE -fvisibility=hidden)
             # target_compile_options(psppy PRIVATE -Wdeprecated-declarations)

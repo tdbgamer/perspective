@@ -22,7 +22,12 @@ mod table_data;
 mod view;
 
 pub mod config;
+#[cfg(has_proto)]
 pub mod proto;
+#[cfg(has_out_dir_proto)]
+pub mod proto {
+    include!(concat!(env!("OUT_DIR"), "/perspective.proto.rs"));
+}
 pub mod utils;
 
 pub use crate::client::{Client, ClientHandler, Features};

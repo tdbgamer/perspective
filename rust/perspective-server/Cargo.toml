@@ -38,14 +38,13 @@ python = []
 export-cpp-only = []
 
 [build-dependencies]
-cxx-build = "1.0.115"
+cxx-build = "1.0.92"
 cmake = "0.1.50"
-num_cpus = "1.16.0"
-tempfile = "3.10.1"
+num_cpus = "^1.15.0"
 
 [dependencies]
 async-lock = "2.5.0"
-cxx = { version = "1.0.115", features = ["c++17"] }
+cxx = { version = "1.0.92", features = ["c++17"] }
 tracing = { version = ">=0.1.36" }
 futures = "0.3"
 
