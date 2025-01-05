@@ -10,7 +10,7 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-import * as wasm_module from "../../dist/pkg/perspective-viewer.js";
+import * as wasm_module from "../../dist/wasm/perspective-viewer.js";
 import { load_wasm_stage_0 } from "@finos/perspective/src/ts/wasm/decompress.ts";
 
 export async function init_client(

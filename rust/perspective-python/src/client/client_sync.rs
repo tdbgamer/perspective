@@ -146,7 +146,6 @@ impl Client {
     }
 }
 
-#[doc = crate::inherit_docs!("table.md")]
 #[pyclass(subclass, name = "Table", module = "perspective")]
 pub struct Table(PyTable);
 

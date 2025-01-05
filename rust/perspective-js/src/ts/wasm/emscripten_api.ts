@@ -10,42 +10,18 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-// @ts-ignore
-import * as perspective_server from "../../../dist/pkg/perspective-server.js";
+import * as perspective_server from "../../../dist/wasm/perspective-server.js";
 
-export type * from "../../../dist/pkg/perspective-js.js";
+export type * from "../../../dist/wasm/perspective-js.js";
 
 export type PspPtr = bigint | number;
 
-export interface EmscriptenServer {}
-export interface EmscriptenApi {
-    HEAP8: Int8Array;
-    HEAPU8: Uint8Array;
-    HEAP16: Int16Array;
-    HEAPU16: Uint16Array;
-    HEAP32: Int32Array;
-    HEAPU32: Uint32Array;
-    HEAPU64: BigUint64Array;
-    _psp_alloc(size: PspPtr): PspPtr;
-    _psp_free(ptr: PspPtr): void;
-    _psp_new_server(): EmscriptenServer;
-    _psp_delete_server(server: EmscriptenServer): void;
-    _psp_is_memory64(): boolean;
-    _psp_handle_request(
-        server: EmscriptenServer,
-        client_id: number,
-        buffer_ptr: PspPtr,
-        buffer_len: PspPtr
-    ): PspPtr;
-    _psp_poll(server: EmscriptenServer): PspPtr;
-    _psp_new_session(server: EmscriptenServer): number;
-    _psp_close_session(server: EmscriptenServer, client_id: number): void;
-}
+export type EmscriptenServer = number;
 
 export async function compile_perspective(
     wasmBinary: ArrayBuffer
-): Promise<EmscriptenApi> {
-    const module: EmscriptenApi = await perspective_server.default({
+): Promise<perspective_server.MainModule> {
+    const module = await perspective_server.default({
         locateFile(x: any) {
             return x;
         },
@@ -61,7 +37,7 @@ export async function compile_perspective(
                     const bytes = textEncoder.encode(str);
                     const ptr = module._psp_alloc(
                         module._psp_is_memory64()
-                            ? BigInt(bytes.byteLength + 1)
+                            ? (BigInt(bytes.byteLength + 1) as any as number)
                             : bytes.byteLength + 1
                     );
 

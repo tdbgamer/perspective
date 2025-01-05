@@ -15,7 +15,7 @@ import perspective_wasm_worker from "../../../src/ts/perspective-server.worker.j
 
 import { load_wasm_stage_0 } from "./decompress.ts";
 
-import type * as psp from "../../../dist/pkg/perspective-js.d.ts";
+import type * as psp from "../../../dist/wasm/perspective-js.d.ts";
 
 function invert_promise<T>(): [(t: T) => void, Promise<T>] {
     let sender;
@@ -33,7 +33,10 @@ async function _init(ws: Worker, wasm: ArrayBuffer) {
         sender(null);
     });
 
-    ws.postMessage({ cmd: "init", args: [wasm] }, { transfer: [wasm] });
+    ws.postMessage(
+        { cmd: "init", args: [wasm] },
+        { transfer: wasm instanceof WebAssembly.Module ? [] : [wasm] }
+    );
     await receiver;
 }
 
@@ -45,7 +48,7 @@ async function _init(ws: Worker, wasm: ArrayBuffer) {
  */
 export async function worker(
     module: Promise<typeof psp>,
-    server_wasm: Promise<ArrayBuffer>
+    server_wasm: Promise<ArrayBuffer | WebAssembly.Module>
 ) {
     const [wasm, webworker]: [ArrayBuffer, Worker] = await Promise.all([
         server_wasm,

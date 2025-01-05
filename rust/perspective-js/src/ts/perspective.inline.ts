@@ -10,14 +10,17 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-import perspective from "./perspective.browser.ts";
+import perspective, { PerspectiveWasm } from "./perspective.browser.ts";
 export * from "./perspective.browser.ts";
 
-const server_url = new URL("../pkg/perspective-server.wasm", import.meta.url);
-const client_url = new URL("../pkg/perspective-js.wasm", import.meta.url);
+// @ts-ignore;
+import server_wasm from "../../dist/wasm/perspective-server.wasm";
 
-await perspective.init_server(fetch(server_url));
-await perspective.init_client(fetch(client_url));
+// @ts-ignore;
+import client_wasm from "../../dist/wasm/perspective-js.wasm";
+
+await perspective.init_server(server_wasm);
+await perspective.init_client(client_wasm as any as PerspectiveWasm);
 
 console.warn("Perspective wasn been initialized in inline mode");
 

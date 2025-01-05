@@ -36,7 +36,7 @@ export { HTMLPerspectiveViewerPluginElement } from "./plugin";
 import {
     ExportDropDownMenuElement,
     CopyDropDownMenuElement,
-} from "../../dist/pkg/perspective-viewer";
+} from "../../dist/wasm/perspective-viewer";
 
 export interface HTMLPerspectiveViewerExportMenu
     extends HTMLElement,

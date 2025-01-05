@@ -242,8 +242,9 @@ export class HTMLPerspectiveWorkspaceElement extends HTMLElement {
         }
     }
 
-    connectedCallback() {
+    async connectedCallback() {
         if (!this.workspace) {
+            await customElements.whenDefined("perspective-viewer");
             const container = this.shadowRoot!.querySelector("#container")!;
             this.workspace = new PerspectiveWorkspace(this);
             this._register_light_dom_listener();

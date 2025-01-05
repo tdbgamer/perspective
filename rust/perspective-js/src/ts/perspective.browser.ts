@@ -10,37 +10,46 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-export type * from "../../dist/pkg/perspective-js.d.ts";
-import type * as psp from "../../dist/pkg/perspective-js.d.ts";
+export type * from "../../dist/wasm/perspective-js.d.ts";
+import type * as psp from "../../dist/wasm/perspective-js.d.ts";
 
-import * as wasm_module from "../../dist/pkg/perspective-js.js";
+import * as wasm_module from "../../dist/wasm/perspective-js.js";
 import * as api from "./wasm/browser.ts";
 import { load_wasm_stage_0 } from "./wasm/decompress.ts";
 
-let GLOBAL_SERVER_WASM: Promise<ArrayBuffer>;
+let GLOBAL_SERVER_WASM: Promise<ArrayBuffer | WebAssembly.Module>;
 
 export function init_server(
-    wasm: Promise<ArrayBuffer | Response> | ArrayBuffer | Response,
+    wasm:
+        | Uint8Array
+        | Promise<ArrayBuffer | Response | WebAssembly.Module>
+        | ArrayBuffer
+        | Response
+        | WebAssembly.Module,
     disable_stage_0: boolean = false
 ) {
-    if (wasm instanceof Response) {
+    if (wasm instanceof Uint8Array) {
+        GLOBAL_SERVER_WASM = Promise.resolve(wasm.buffer);
+    } else if (wasm instanceof Response) {
         GLOBAL_SERVER_WASM = wasm.arrayBuffer();
     } else if (wasm instanceof Promise) {
-        GLOBAL_SERVER_WASM = wasm.then((wasm: ArrayBuffer | Response) => {
-            if (wasm instanceof Response) {
-                return wasm.arrayBuffer();
-            } else {
-                return wasm;
+        GLOBAL_SERVER_WASM = wasm.then(
+            (wasm: ArrayBuffer | Response | WebAssembly.Module) => {
+                if (wasm instanceof Response) {
+                    return wasm.arrayBuffer();
+                } else {
+                    return wasm;
+                }
             }
-        });
+        );
     } else {
         GLOBAL_SERVER_WASM = Promise.resolve(wasm);
     }
 
     if (!disable_stage_0) {
-        GLOBAL_SERVER_WASM = GLOBAL_SERVER_WASM.then(load_wasm_stage_0).then(
-            (x) => x.buffer as ArrayBuffer
-        );
+        GLOBAL_SERVER_WASM = GLOBAL_SERVER_WASM.then((x) => {
+            return load_wasm_stage_0(x).then((x) => x.buffer as ArrayBuffer);
+        });
     }
 }
 
@@ -63,7 +72,12 @@ export type PerspectiveWasm =
     | Promise<ArrayBuffer | Response | Object>;
 
 export function init_client(wasm: PerspectiveWasm, disable_stage_0 = false) {
-    if (wasm instanceof ArrayBuffer) {
+    if (wasm instanceof Uint8Array) {
+        GLOBAL_CLIENT_WASM = compilerize(
+            wasm.buffer as ArrayBuffer,
+            disable_stage_0
+        );
+    } else if (wasm instanceof ArrayBuffer) {
         GLOBAL_CLIENT_WASM = compilerize(wasm, disable_stage_0);
     } else if (wasm instanceof Response) {
         GLOBAL_CLIENT_WASM = wasm
@@ -85,18 +99,14 @@ export function init_client(wasm: PerspectiveWasm, disable_stage_0 = false) {
     } else if (wasm instanceof Object) {
         GLOBAL_CLIENT_WASM = Promise.resolve(wasm as typeof psp);
     }
-
-    console.log(GLOBAL_CLIENT_WASM);
 }
 
 function get_client() {
-    if (GLOBAL_CLIENT_WASM === undefined) {
-        const viewer_class: any = customElements.get("perspective-viewer");
-        if (viewer_class) {
-            GLOBAL_CLIENT_WASM = Promise.resolve(viewer_class.__wasm_module__);
-        } else {
-            throw new Error("Missing perspective-client.wasm");
-        }
+    const viewer_class: any = customElements.get("perspective-viewer");
+    if (viewer_class) {
+        GLOBAL_CLIENT_WASM = Promise.resolve(viewer_class.__wasm_module__);
+    } else if (GLOBAL_CLIENT_WASM === undefined) {
+        throw new Error("Missing perspective-client.wasm");
     }
 
     return GLOBAL_CLIENT_WASM;
@@ -107,7 +117,9 @@ function get_server() {
         throw new Error("Missing perspective-server.wasm");
     }
 
-    return GLOBAL_SERVER_WASM.then((x) => x.slice(0));
+    return GLOBAL_SERVER_WASM.then((x) =>
+        x instanceof WebAssembly.Module ? x : x.slice(0)
+    );
 }
 
 export async function websocket(url: string | URL) {

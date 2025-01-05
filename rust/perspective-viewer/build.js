@@ -50,13 +50,10 @@ async function build_all() {
         //     "Bundler friendly": true,
         // },
         {
-            entryPoints: ["src/ts/perspective-viewer.ts"],
+            entryPoints: ["src/ts/perspective-viewer.inline.ts"],
             format: "esm",
-            plugins: [
-                PerspectiveEsbuildPlugin({
-                    wasm: { inline: true },
-                }),
-            ],
+            plugins: [PerspectiveEsbuildPlugin()],
+            loader: { ".wasm": "binary" },
             outfile: "dist/esm/perspective-viewer.inline.js",
         },
         // No WASM assets inlined or linked.
@@ -85,6 +82,7 @@ async function build_all() {
             entryPoints: ["src/ts/perspective-viewer.cdn.ts"],
             format: "esm",
             plugins: [PerspectiveEsbuildPlugin()],
+            loader: { ".wasm": "file" },
             outfile: "dist/cdn/perspective-viewer.js",
         },
     ];

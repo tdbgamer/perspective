@@ -231,13 +231,7 @@ if(PSP_WASM_BUILD)
             ")
         endif()
     else()
-        set(OPT_FLAGS " -O3 -g0 ")
-        if(NOT PSP_PYODIDE)
-            set(OPT_FLAGS " \
-                ${OPT_FLAGS} \
-            ")
-        endif()
-
+        set(OPT_FLAGS " -O3 -g0 --emit-tsd=perspective-server.d.ts ")
         if (PSP_WASM_EXCEPTIONS)
             set(OPT_FLAGS "${OPT_FLAGS} -fwasm-exceptions ")
         endif()

@@ -10,7 +10,7 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-export type * from "../../dist/pkg/perspective-js.d.ts";
+export type * from "../../dist/wasm/perspective-js.d.ts";
 export { PerspectiveServer } from "./wasm/engine.ts";
 
 import WebSocket, { WebSocketServer as HttpWebSocketServer } from "ws";
@@ -22,7 +22,7 @@ import { webcrypto } from "node:crypto";
 import type * as net from "node:net";
 import * as url from "node:url";
 
-import * as perspective_client from "../../dist/pkg/perspective-js.js";
+import * as perspective_client from "../../dist/wasm/perspective-js.js";
 import { load_wasm_stage_0 } from "./wasm/decompress.js";
 import { PerspectiveServer } from "./wasm/engine.ts";
 import { compile_perspective } from "./wasm/emscripten_api.ts";
@@ -34,14 +34,14 @@ if (!globalThis.crypto) {
 }
 
 const uncompressed_client_wasm = await fs
-    .readFile(path.join(__dirname, "../../dist/pkg/perspective-js.wasm"))
+    .readFile(path.join(__dirname, "../../dist/wasm/perspective-js.wasm"))
     .then((buffer) => load_wasm_stage_0(buffer.buffer as ArrayBuffer));
 
 await perspective_client.default(uncompressed_client_wasm);
 perspective_client.init();
 
 const SYNC_MODULE = await fs
-    .readFile(path.join(__dirname, "../../dist/pkg/perspective-server.wasm"))
+    .readFile(path.join(__dirname, "../../dist/wasm/perspective-server.wasm"))
     .then((buffer) => load_wasm_stage_0(buffer.buffer as ArrayBuffer))
     .then((buffer) => compile_perspective(buffer.buffer as ArrayBuffer));
 

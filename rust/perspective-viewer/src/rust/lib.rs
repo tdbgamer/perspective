@@ -10,6 +10,8 @@
 // ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
+//! The API for the [`@finos/perspective-viewer`]() JavaScript library.
+
 // Required by yew's `html` macro.
 #![recursion_limit = "1024"]
 #![feature(const_type_name)]
@@ -22,7 +24,6 @@
     clippy::panic_in_result_fn,
     clippy::await_holding_refcell_ref
 )]
-#![doc = include_str!("../../docs/viewer.md")]
 
 pub mod components;
 pub mod config;
@@ -50,7 +51,7 @@ use crate::utils::define_web_component;
 
 // #[wasm_bindgen(typescript_custom_section)]
 // const TS_APPEND_CONTENT: &'static str = r#"
-// import type * as perspective from "../../dist/pkg/ViewConfigUpdate.ts";
+// import type * as perspective from "../../dist/wasm/ViewConfigUpdate.ts";
 // "#;
 
 /// Register a plugin globally.

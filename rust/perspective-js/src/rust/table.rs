@@ -165,7 +165,6 @@ pub(crate) impl UpdateData {
     }
 }
 
-#[doc = inherit_docs!("table.md")]
 #[derive(Clone)]
 #[wasm_bindgen]
 pub struct Table(pub(crate) perspective_client::Table);

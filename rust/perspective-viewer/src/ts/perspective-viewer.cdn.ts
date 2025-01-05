@@ -13,7 +13,7 @@
 import perspective_viewer from "./perspective-viewer.ts";
 export * from "./perspective-viewer.ts";
 
-const url = new URL("../pkg/perspective-viewer.wasm", import.meta.url);
+const url = new URL("../wasm/perspective-viewer.wasm", import.meta.url);
 await perspective_viewer.init_client(fetch(url));
 
 export default perspective_viewer;
