@@ -52,8 +52,8 @@ export async function load_wasm_stage_0(
         wasm = await wasm();
     }
 
-    const exports = await compile(wasm);
     try {
+        const exports = await compile(wasm);
         const size = exports.size();
         const offset = exports.offset();
         const array = new Uint8Array(exports.memory.buffer);

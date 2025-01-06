@@ -11,7 +11,7 @@
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 import type { MainModule } from "../../../dist/wasm/perspective-server.js";
-import { EmscriptenServer, PspPtr } from "./emscripten_api.ts";
+import type { EmscriptenServer, PspPtr } from "./emscripten_api.ts";
 
 export type ApiResponse = {
     client_id: number;
